@@ -87,7 +87,7 @@ The project follows the standard Next.js App Router structure, separating UI, se
 
 1.  **Clone the Repository:**
     ```bash
-    git clone [https://github.com/your-username/TMUSync.git](https://github.com/your-username/TMUSync.git)
+    git clone [[https://github.com/your-username/TMUSync.git](https://github.com/your-username/TMUSync.git)](https://github.com/ahrazkk/TMUSync--D2L-University-Schedule-Integration-Dashboard.git)
     cd TMUSync
     ```
 
