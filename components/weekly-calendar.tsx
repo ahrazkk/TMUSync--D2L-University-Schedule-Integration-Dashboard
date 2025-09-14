@@ -138,9 +138,10 @@ interface CalendarEvent {
 interface WeeklyCalendarProps {
   events: CalendarEvent[];
   onCourseClick?: (courseDetails: any) => void;
+  onAssignmentClick?: (assignment: any) => void;
 }
 
-export function WeeklyCalendar({ events = [], onCourseClick }: WeeklyCalendarProps) {
+export function WeeklyCalendar({ events = [], onCourseClick, onAssignmentClick }: WeeklyCalendarProps) {
   const [currentDate, setCurrentDate] = useState(dayjs());
   const today = dayjs().day();
 
@@ -150,6 +151,10 @@ export function WeeklyCalendar({ events = [], onCourseClick }: WeeklyCalendarPro
 
   const handleNextWeek = () => {
     setCurrentDate(currentDate.add(1, 'week'));
+  };
+
+  const handleToday = () => {
+    setCurrentDate(dayjs());
   };
   
   const startOfWeek = currentDate.startOf('week');
@@ -175,7 +180,12 @@ export function WeeklyCalendar({ events = [], onCourseClick }: WeeklyCalendarPro
           <Button variant="ghost" size="sm" onClick={handlePreviousWeek}>
             <ChevronLeft className="w-4 h-4" />
           </Button>
-          <span className="font-medium text-muted-foreground">{formattedDateRange}</span>
+          <div className="flex items-center gap-2">
+            <span className="font-medium text-muted-foreground">{formattedDateRange}</span>
+            <Button variant="outline" size="sm" onClick={handleToday} className="text-xs">
+              Today
+            </Button>
+          </div>
           <Button variant="ghost" size="sm" onClick={handleNextWeek}>
             <ChevronRight className="w-4 h-4" />
           </Button>
@@ -292,8 +302,8 @@ export function WeeklyCalendar({ events = [], onCourseClick }: WeeklyCalendarPro
 
               // Enhanced assignment colors for current day
               const assignmentColorClass = isCurrentDay 
-                ? "relative rounded bg-slate-900/70 text-slate-100 border border-slate-600 text-xs p-1 m-1 font-medium overflow-hidden flex items-start justify-start gap-1 dark:bg-slate-950/80 dark:text-slate-200 dark:border-slate-400"
-                : "relative rounded bg-slate-900/40 text-slate-200 border border-slate-700/50 text-xs p-1 m-1 font-medium overflow-hidden flex items-start justify-start gap-1 dark:bg-slate-950/50 dark:text-slate-300 dark:border-slate-600/40";
+                ? "relative rounded bg-slate-900/70 text-slate-100 border border-slate-600 text-xs p-1 m-1 font-medium overflow-hidden flex items-start justify-start gap-1 cursor-pointer hover:brightness-110 transition-all dark:bg-slate-950/80 dark:text-slate-200 dark:border-slate-400"
+                : "relative rounded bg-slate-900/40 text-slate-200 border border-slate-700/50 text-xs p-1 m-1 font-medium overflow-hidden flex items-start justify-start gap-1 cursor-pointer hover:brightness-110 transition-all dark:bg-slate-950/50 dark:text-slate-300 dark:border-slate-600/40";
 
               return (
                 <div
@@ -306,6 +316,12 @@ export function WeeklyCalendar({ events = [], onCourseClick }: WeeklyCalendarPro
                     marginLeft: layout.left !== '0%' ? layout.left : '0px',
                     zIndex: layout.zIndex
                   }}
+                  onClick={() => {
+                    if (onAssignmentClick) {
+                      onAssignmentClick(event);
+                    }
+                  }}
+                  title={`Click to view assignment details: ${event.title}`}
                 >
                   <FileText className="w-3 h-3 flex-shrink-0" />
                   <span className="truncate">{event.title}</span>

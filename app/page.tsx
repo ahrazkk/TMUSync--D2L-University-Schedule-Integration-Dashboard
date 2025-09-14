@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Sidebar } from "@/components/sidebar";
 import { DashboardHeader } from "@/components/dashboard-header";
 import { WeeklyCalendar } from "@/components/weekly-calendar";
@@ -8,12 +8,21 @@ import { AssignmentsPanel } from "@/components/assignments-panel";
 import { StatsCards } from "@/components/stats-cards";
 import { QuickActions } from "@/components/quick-actions";
 import { CourseDetailCard } from "@/components/course-detail-card";
+import { AssignmentDetailCard } from "@/components/assignment-detail-card";
 import { Skeleton } from "@/components/ui/skeleton";
+import { 
+  saveAssignmentsWithBindings, 
+  loadAssignmentsWithBindings, 
+  syncAssignmentsAfterLogin,
+  clearAssignmentData 
+} from "@/lib/assignment-persistence";
 
 export default function DashboardPage() {
   const [schedule, setSchedule] = useState<any[] | null>(null);
+  const [assignments, setAssignments] = useState<any[] | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedCourse, setSelectedCourse] = useState<any | null>(null);
+  const [selectedAssignment, setSelectedAssignment] = useState<any | null>(null);
   const [assignmentStats, setAssignmentStats] = useState<{
     completed: number;
     total: number;
@@ -22,32 +31,65 @@ export default function DashboardPage() {
 
   useEffect(() => {
     async function loadSchedule() {
+      // Clear test assignments first
+      clearTestAssignments();
+      
+      // Clear old CP830 assignments that are duplicates
+      clearOldCP830Assignments();
+      
       const savedSchedule = localStorage.getItem('userSchedule');
+      
+      // Use the new assignment persistence system
+      const savedAssignments = loadAssignmentsWithBindings();
       
       if (savedSchedule) {
         const parsed = JSON.parse(savedSchedule);
         setSchedule(parsed);
+      }
+      
+      if (savedAssignments) {
+        setAssignments(savedAssignments);
+      }
+      
+      if (savedSchedule && savedAssignments) {
         setIsLoading(false);
+        console.log('📚 Loaded cached data with preserved course bindings');
       } else {
-        // No saved schedule, fetch fresh from backend
-        async function fetchSchedule() {
+        // No saved data, fetch fresh from backend
+        async function fetchData() {
           try {
-            const response = await fetch('/api/schedule', { credentials: 'include' });
-            if (!response.ok) {
+            const scheduleResponse = await fetch('/api/schedule', { credentials: 'include' });
+            
+            if (!scheduleResponse.ok) {
               window.location.href = '/login';
               return;
             }
-            const data = await response.json();
-            localStorage.setItem('userSchedule', JSON.stringify(data.schedule));
-            setSchedule(data.schedule);
+            
+            const scheduleData = await scheduleResponse.json();
+            
+            // Separate classes and assignments from the combined schedule
+            const allData = scheduleData.schedule || [];
+            const classes = allData.filter((item: any) => item.type === 'class');
+            const serverAssignments = allData.filter((item: any) => item.type === 'assignment');
+            
+            // Store schedule normally
+            localStorage.setItem('userSchedule', JSON.stringify(classes));
+            
+            // Use the new assignment persistence system with sync
+            const syncedAssignments = syncAssignmentsAfterLogin(serverAssignments);
+            
+            setSchedule(classes);
+            setAssignments(syncedAssignments);
+            
+            console.log('📚 Fetched fresh data and synced with local course bindings');
           } catch (error) {
-            console.error("Failed to fetch schedule, redirecting to login.", error);
+            console.error("Failed to fetch data, redirecting to login.", error);
             window.location.href = '/login';
           } finally {
             setIsLoading(false);
           }
         }
-        fetchSchedule();
+        fetchData();
       }
     }
     
@@ -106,6 +148,101 @@ export default function DashboardPage() {
     setSelectedCourse(null);
   };
 
+  const handleAssignmentClick = (assignment: any) => {
+    setSelectedAssignment(assignment);
+  };
+
+  // DEBUG: Test function to manually add sample assignments
+  const addTestAssignments = () => {
+    // First check what course keys we actually have
+    const availableCourseKeys = schedule ? Array.from(new Set(schedule.map(event => event.courseName))) : [];
+    console.log('🎯 Available course keys for test assignments:', availableCourseKeys);
+    
+    const testAssignments = [
+      {
+        title: "Quiz#1 - Available",
+        dueDate: "2025-09-15T08:00:00Z",
+        course: availableCourseKeys[0] || "CP8307", // Use first available course key
+        courseName: availableCourseKeys[0] || "CP8307",
+        description: "Test assignment for Computer Vision course",
+        d2lUrl: "https://example.com"
+      },
+      {
+        title: "Assignment 1",
+        dueDate: "2025-09-20T23:59:00Z", 
+        course: availableCourseKeys[1] || "CPS843", // Use second available course key
+        courseName: availableCourseKeys[1] || "CPS843",
+        description: "Test assignment for second course"
+      }
+    ];
+    console.log('🧪 Adding test assignments:', testAssignments);
+    setAssignments(testAssignments);
+    saveAssignmentsWithBindings(testAssignments);
+  };
+
+  // Function to clear old CP830 assignments that are duplicates
+  const clearOldCP830Assignments = () => {
+    try {
+      const savedAssignments = loadAssignmentsWithBindings();
+      if (savedAssignments) {
+        console.log('Before cleanup - Total assignments:', savedAssignments.length);
+        
+        // Filter out assignments with old CP830 course name
+        const filteredAssignments = savedAssignments.filter((assignment: any) => {
+          const course = assignment.courseName || assignment.course || assignment.vsbCourseKey || '';
+          const isOldCP830 = course.toLowerCase().includes('cp830') || course.toLowerCase().includes('cp-830');
+          return !isOldCP830;
+        });
+        
+        console.log('After cleanup - Total assignments:', filteredAssignments.length);
+        console.log('Removed', savedAssignments.length - filteredAssignments.length, 'old CP830 assignments');
+        
+        // Use the new persistence system
+        saveAssignmentsWithBindings(filteredAssignments);
+        
+        // Update state to reflect changes
+        setAssignments(filteredAssignments);
+        
+        console.log('✅ Old CP830 assignments removed successfully');
+      }
+    } catch (error) {
+      console.error('Error clearing old CP830 assignments:', error);
+    }
+  };
+
+  // Clear test assignments and use real ones
+  const clearTestAssignments = () => {
+    clearAssignmentData();
+    setAssignments([]);
+    console.log('🧹 Cleared test assignments');
+  };
+
+  const closeAssignmentDetails = () => {
+    setSelectedAssignment(null);
+  };
+
+  // Function to get assignments for a specific course
+  const getAssignmentsForCourse = (courseKey: string): any[] => {
+    if (!assignments) return [];
+    
+    // Normalize course key for comparison
+    const normalizeCourseCode = (code: string): string => {
+      return code.replace(/[-\s]/g, '').toUpperCase();
+    };
+    
+    const normalizedCourseKey = normalizeCourseCode(courseKey);
+    
+    return assignments.filter((assignment: any) => {
+      // Try multiple course fields - prioritize vsbCourseKey which has the correct VSB format
+      const assignmentCourse = assignment.vsbCourseKey || assignment.courseName || assignment.course || '';
+      const normalizedAssignmentCourse = normalizeCourseCode(assignmentCourse);
+      
+      return normalizedAssignmentCourse === normalizedCourseKey ||
+             normalizedAssignmentCourse.includes(normalizedCourseKey) ||
+             normalizedCourseKey.includes(normalizedAssignmentCourse);
+    });
+  };
+
   if (isLoading) {
     return (
       <div className="flex min-h-screen bg-background">
@@ -132,7 +269,14 @@ export default function DashboardPage() {
   
   // --- THIS IS THE FIX ---
   // Ensure the schedule state feeds BOTH the calendar and the assignments panel.
-  const allEvents = schedule || [];
+  // Combine schedule and assignments data for the calendar
+  const scheduleEvents = schedule || [];
+  const assignmentEvents = assignments ? assignments.map((assignment: any) => ({
+    ...assignment,
+    type: 'assignment'
+  })) : [];
+  
+  const allEvents = [...scheduleEvents, ...assignmentEvents];
   const upcomingAssignments = allEvents.filter(event => event.type === 'assignment');
   const finishedAssignments: any[] = [];
 
@@ -157,17 +301,6 @@ export default function DashboardPage() {
     });
 
     // Debug: Show the VSB course structure
-    console.log('📚 VSB Course Analysis:', {
-      totalEvents: allEvents.length,
-      sampleEvents: allEvents.slice(0, 5).map(e => ({
-        title: e.title,           // e.g., "CPS109 - LEC"
-        courseName: e.courseName, // e.g., "CPS109" (the course key)
-        type: e.type              // e.g., "class"
-      })),
-      uniqueCourseKeys: Array.from(uniqueCourseKeys).sort(),
-      totalUniqueCourses: uniqueCourseKeys.size
-    });
-
     const courseKeys = Array.from(uniqueCourseKeys);
     const courseNames = courseKeys.map(key => courseKeyToDisplayName.get(key) || key);
     
@@ -187,19 +320,30 @@ export default function DashboardPage() {
             assignmentStats={assignmentStats || undefined} 
             courseStats={courseStats}
           />
+          
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             <div className="lg:col-span-2 space-y-6">
               {/* Course Detail Card - shown above calendar when a course is selected */}
               {selectedCourse && (
                 <CourseDetailCard 
                   courseDetails={selectedCourse} 
-                  onClose={handleCloseCourseDetail}
+                  assignments={getAssignmentsForCourse(selectedCourse.key)}
+                  onClose={() => setSelectedCourse(null)}
+                  onAssignmentClick={handleAssignmentClick}
+                />
+              )}
+              {/* Assignment Detail Card - shown above calendar when an assignment is selected */}
+              {selectedAssignment && (
+                <AssignmentDetailCard 
+                  assignment={selectedAssignment}
+                  onClose={() => setSelectedAssignment(null)}
                 />
               )}
               {/* The calendar receives all events to display them visually */}
               <WeeklyCalendar 
                 events={allEvents} 
                 onCourseClick={handleCourseClick}
+                onAssignmentClick={handleAssignmentClick}
               />
             </div>
             <div className="space-y-6">

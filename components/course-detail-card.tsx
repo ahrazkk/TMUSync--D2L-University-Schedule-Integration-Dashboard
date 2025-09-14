@@ -5,8 +5,12 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
-import { X, Clock, MapPin, User, Calendar, BookOpen, GraduationCap } from "lucide-react"
+import { X, Clock, MapPin, User, Calendar, BookOpen, GraduationCap, FileText, ExternalLink } from "lucide-react"
 import { cn } from "@/lib/utils"
+import dayjs from 'dayjs'
+import relativeTime from 'dayjs/plugin/relativeTime'
+
+dayjs.extend(relativeTime)
 
 interface CourseSession {
   type: string;
@@ -36,9 +40,23 @@ interface CourseDetails {
   allTimeSlots: CourseSession[];
 }
 
+interface Assignment {
+  title: string;
+  dueDate: string;
+  courseName?: string;
+  course?: string;
+  description?: string;
+  source?: 'VSB' | 'ICS';
+  d2lUrl?: string;
+  type?: string;
+  location?: string;
+}
+
 interface CourseDetailCardProps {
   courseDetails: CourseDetails;
+  assignments?: Assignment[];
   onClose: () => void;
+  onAssignmentClick?: (assignment: Assignment) => void;
 }
 
 const dayNames = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
@@ -62,8 +80,8 @@ const getSessionTypeColor = (type: string) => {
   }
 };
 
-export function CourseDetailCard({ courseDetails, onClose }: CourseDetailCardProps) {
-  const [activeTab, setActiveTab] = useState<'overview' | 'schedule'>('overview');
+export function CourseDetailCard({ courseDetails, assignments = [], onClose, onAssignmentClick }: CourseDetailCardProps) {
+  const [activeTab, setActiveTab] = useState<'overview' | 'schedule' | 'assignments'>('overview');
 
   // Group sessions by type
   const sessionsByType = courseDetails.sessions.reduce((acc, session) => {
@@ -145,6 +163,15 @@ export function CourseDetailCard({ courseDetails, onClose }: CourseDetailCardPro
           >
             <Calendar className="w-3 h-3 mr-1" />
             Schedule
+          </Button>
+          <Button
+            variant={activeTab === 'assignments' ? 'default' : 'ghost'}
+            size="sm"
+            onClick={() => setActiveTab('assignments')}
+            className="text-xs"
+          >
+            <FileText className="w-3 h-3 mr-1" />
+            Assignments {assignments.length > 0 && `(${assignments.length})`}
           </Button>
         </div>
       </CardHeader>
@@ -284,6 +311,117 @@ export function CourseDetailCard({ courseDetails, onClose }: CourseDetailCardPro
                 </p>
                 <p className="text-xs text-muted-foreground mt-1">
                   Detailed schedule information will be available after your next login
+                </p>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Assignments Tab */}
+        {activeTab === 'assignments' && (
+          <div className="space-y-3">
+            {assignments.length > 0 ? (
+              <div className="space-y-3">
+                {assignments.map((assignment, index) => {
+                  const dueDate = dayjs(assignment.dueDate);
+                  const now = dayjs();
+                  const timeUntilDue = dueDate.diff(now);
+                  const isOverdue = timeUntilDue < 0;
+                  const humanReadableTime = dueDate.fromNow();
+                  
+                  // Calculate urgency
+                  const hoursUntilDue = Math.abs(dueDate.diff(now, 'hour'));
+                  const daysUntilDue = Math.abs(dueDate.diff(now, 'day'));
+                  
+                  let urgencyColor = "bg-green-100 text-green-800 border-green-300 dark:bg-green-900 dark:text-green-200 dark:border-green-700";
+                  
+                  if (isOverdue) {
+                    urgencyColor = "bg-red-100 text-red-800 border-red-300 dark:bg-red-900 dark:text-red-200 dark:border-red-700";
+                  } else if (hoursUntilDue <= 24) {
+                    urgencyColor = "bg-red-100 text-red-800 border-red-300 dark:bg-red-900 dark:text-red-200 dark:border-red-700";
+                  } else if (daysUntilDue <= 3) {
+                    urgencyColor = "bg-yellow-100 text-yellow-800 border-yellow-300 dark:bg-yellow-900 dark:text-yellow-200 dark:border-yellow-700";
+                  }
+
+                  return (
+                    <div 
+                      key={index} 
+                      className="p-3 border rounded-lg hover:bg-muted/50 cursor-pointer transition-colors"
+                      onClick={() => onAssignmentClick && onAssignmentClick(assignment)}
+                    >
+                      <div className="flex items-start justify-between mb-2">
+                        <div className="flex items-start gap-2">
+                          <FileText className="w-4 h-4 text-muted-foreground mt-0.5 flex-shrink-0" />
+                          <div className="min-w-0 flex-1">
+                            <h4 className="font-medium text-sm line-clamp-2 break-words">{assignment.title}</h4>
+                            {/* Only show clean description if it's different from title and reasonably short */}
+                            {assignment.description && 
+                             assignment.description !== assignment.title && 
+                             assignment.description.length < 100 && 
+                             !assignment.description.includes('http') && (
+                              <p className="text-xs text-muted-foreground mt-1 line-clamp-1 break-words">
+                                {assignment.description}
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                        <div className="flex flex-col items-end gap-1 flex-shrink-0">
+                          <Badge variant="outline" className={cn("text-xs border", urgencyColor)}>
+                            {isOverdue ? 'Overdue' : hoursUntilDue <= 24 ? 'Due Soon' : daysUntilDue <= 3 ? 'Due This Week' : 'Upcoming'}
+                          </Badge>
+                          {assignment.source && (
+                            <Badge variant="secondary" className="text-xs">
+                              {assignment.source}
+                            </Badge>
+                          )}
+                        </div>
+                      </div>
+                      
+                      <div className="flex items-center justify-between text-xs text-muted-foreground">
+                        <div className="flex items-center gap-3">
+                          <span className="font-medium">{dueDate.format('MMM D, YYYY')}</span>
+                          <span>{dueDate.format('h:mm A')}</span>
+                          {assignment.type && (
+                            <Badge variant="outline" className="text-xs">
+                              {assignment.type}
+                            </Badge>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className={cn("font-medium text-xs", 
+                            isOverdue ? "text-red-600" : 
+                            hoursUntilDue <= 24 ? "text-red-600" : 
+                            daysUntilDue <= 3 ? "text-yellow-600" : "text-green-600"
+                          )}>
+                            {isOverdue ? `Overdue by ${humanReadableTime.replace('ago', '')}` : `Due ${humanReadableTime}`}
+                          </span>
+                          {assignment.d2lUrl && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-6 w-6 p-0"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                window.open(assignment.d2lUrl, '_blank');
+                              }}
+                            >
+                              <ExternalLink className="w-3 h-3" />
+                            </Button>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            ) : (
+              <div className="text-center py-8">
+                <FileText className="w-12 h-12 mx-auto text-muted-foreground mb-2" />
+                <p className="text-sm text-muted-foreground">
+                  No assignments found for this course
+                </p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Assignments will appear here as they're loaded from VSB and ICS files
                 </p>
               </div>
             )}
