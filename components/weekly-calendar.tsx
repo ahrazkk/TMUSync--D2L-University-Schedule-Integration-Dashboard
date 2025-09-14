@@ -132,9 +132,15 @@ interface CalendarEvent {
   duration?: number;
   type: string;
   dueDate?: string;
+  courseDetails?: any; // Will contain detailed course information
 }
 
-export function WeeklyCalendar({ events = [] }: { events: CalendarEvent[] }) {
+interface WeeklyCalendarProps {
+  events: CalendarEvent[];
+  onCourseClick?: (courseDetails: any) => void;
+}
+
+export function WeeklyCalendar({ events = [], onCourseClick }: WeeklyCalendarProps) {
   const [currentDate, setCurrentDate] = useState(dayjs());
   const today = dayjs().day();
 
@@ -236,7 +242,7 @@ export function WeeklyCalendar({ events = [] }: { events: CalendarEvent[] }) {
               return (
                 <div
                   key={uniqueKey}
-                  className={cn("relative rounded text-xs p-1 m-1 font-medium overflow-hidden flex items-start justify-start", colorClass)}
+                  className={cn("relative rounded text-xs p-1 m-1 font-medium overflow-hidden flex items-start justify-start cursor-pointer hover:brightness-110 transition-all", colorClass)}
                   style={{ 
                     gridColumnStart: event.day + 1, 
                     gridRow: gridRow,
@@ -244,6 +250,16 @@ export function WeeklyCalendar({ events = [] }: { events: CalendarEvent[] }) {
                     marginLeft: layout.left !== '0%' ? layout.left : '0px',
                     zIndex: layout.zIndex
                   }}
+                  onClick={() => {
+                    if (onCourseClick) {
+                      // Pass the course details if available, or the basic event info for fallback
+                      onCourseClick(event.courseDetails || {
+                        key: event.courseName,
+                        clickedEvent: event
+                      });
+                    }
+                  }}
+                  title={`Click to view ${event.courseName} details`}
                 >
                   <span>{event.title}</span>
                 </div>

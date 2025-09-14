@@ -4,8 +4,10 @@ import { Bell, Search, Settings, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { useRouter } from "next/navigation";
 
 export function DashboardHeader() {
+  const router = useRouter();
 
   // This function will handle the logout process
   const handleLogout = async () => {
@@ -16,6 +18,11 @@ export function DashboardHeader() {
     } catch (error) {
       console.error('Failed to log out:', error);
     }
+  };
+
+  // Navigate to settings page
+  const handleSettings = () => {
+    router.push('/settings');
   };
 
   return (
@@ -35,7 +42,7 @@ export function DashboardHeader() {
           <span className="absolute -top-1 -right-1 w-3 h-3 bg-destructive rounded-full text-xs"></span>
         </Button>
 
-        <Button variant="ghost" size="sm">
+        <Button variant="ghost" size="sm" onClick={handleSettings}>
           <Settings className="w-5 h-5" />
         </Button>
 

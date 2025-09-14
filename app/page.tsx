@@ -7,11 +7,13 @@ import { WeeklyCalendar } from "@/components/weekly-calendar";
 import { AssignmentsPanel } from "@/components/assignments-panel";
 import { StatsCards } from "@/components/stats-cards";
 import { QuickActions } from "@/components/quick-actions";
+import { CourseDetailCard } from "@/components/course-detail-card";
 import { Skeleton } from "@/components/ui/skeleton";
 
 export default function DashboardPage() {
   const [schedule, setSchedule] = useState<any[] | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [selectedCourse, setSelectedCourse] = useState<any | null>(null);
   const [assignmentStats, setAssignmentStats] = useState<{
     completed: number;
     total: number;
@@ -51,6 +53,58 @@ export default function DashboardPage() {
     
     loadSchedule();
   }, []);
+
+  const handleCourseClick = (courseData: any) => {
+    // If course details are available, use them directly
+    if (courseData && courseData.sessions && courseData.allTimeSlots) {
+      setSelectedCourse(courseData);
+      return;
+    }
+    
+    // Fallback: Generate course details from available schedule data
+    if (courseData && courseData.key && schedule) {
+      const courseKey = courseData.key;
+      const courseEvents = schedule.filter(event => 
+        event.type === 'class' && event.courseName === courseKey
+      );
+      
+      if (courseEvents.length > 0) {
+        const generatedDetails = {
+          key: courseKey,
+          title: `${courseKey} Course`,
+          description: `Course information for ${courseKey}. For more detailed information including instructor details and course descriptions, please log out and log in again to refresh course data.`,
+          credits: 'N/A',
+          campus: 'Toronto Metropolitan University',
+          sessions: courseEvents.map(event => {
+            const parts = event.title.split(' - ');
+            return {
+              type: parts[1] || 'Class',
+              day: event.day,
+              startTime: event.startTime,
+              endTime: 'N/A', // Will be calculated or shown as N/A
+              duration: event.duration || 1,
+              instructor: 'TBA',
+              location: 'TBA'
+            };
+          }),
+          allTimeSlots: courseEvents.map(event => ({
+            type: event.title.split(' - ')[1] || 'Class',
+            day: event.day,
+            startTime: event.startTime,
+            endTime: 'N/A',
+            duration: event.duration || 1,
+            instructor: 'TBA',
+            location: 'TBA'
+          }))
+        };
+        setSelectedCourse(generatedDetails);
+      }
+    }
+  };
+
+  const handleCloseCourseDetail = () => {
+    setSelectedCourse(null);
+  };
 
   if (isLoading) {
     return (
@@ -134,9 +188,19 @@ export default function DashboardPage() {
             courseStats={courseStats}
           />
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <div className="lg:col-span-2">
+            <div className="lg:col-span-2 space-y-6">
+              {/* Course Detail Card - shown above calendar when a course is selected */}
+              {selectedCourse && (
+                <CourseDetailCard 
+                  courseDetails={selectedCourse} 
+                  onClose={handleCloseCourseDetail}
+                />
+              )}
               {/* The calendar receives all events to display them visually */}
-              <WeeklyCalendar events={allEvents} />
+              <WeeklyCalendar 
+                events={allEvents} 
+                onCourseClick={handleCourseClick}
+              />
             </div>
             <div className="space-y-6">
               {/* The assignments panel receives only the assignment events for its list */}

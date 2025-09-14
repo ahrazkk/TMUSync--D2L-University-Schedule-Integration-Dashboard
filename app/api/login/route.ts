@@ -90,10 +90,25 @@ export async function POST(request: NextRequest) {
     
     const enrolledKeys = enrollmentData.cnfs.map((cn: any) => cn.enr);
     const scrapedClasses: any[] = [];
+    const courseDetails = new Map<string, any>(); // Store detailed course information
     const courses = classData?.addcourse?.classdata?.course ? (Array.isArray(classData.addcourse.classdata.course) ? classData.addcourse.classdata.course : [classData.addcourse.classdata.course]) : [];
 
     courses.forEach((course: any) => {
         if (!course.uselection) return;
+        
+        // Store detailed course information
+        if (!courseDetails.has(course.key)) {
+            courseDetails.set(course.key, {
+                key: course.key,
+                title: course.title || course.key,
+                description: course.description || 'No description available',
+                credits: course.credits || 'N/A',
+                campus: course.campus || 'N/A',
+                sessions: [],
+                allTimeSlots: []
+            });
+        }
+        
         const uselections = Array.isArray(course.uselection) ? course.uselection : [course.uselection];
         uselections.forEach((uselection: any) => {
             if (!enrolledKeys.includes(uselection.key)) return;
@@ -108,6 +123,23 @@ export async function POST(request: NextRequest) {
                     const timeblocks = Array.isArray(uselection.timeblock) ? uselection.timeblock : [uselection.timeblock];
                     const blockTimes = timeblocks.find((tb: any) => tb.id === id);
                     if (blockTimes) {
+                        const sessionInfo = {
+                            type: block.type,
+                            day: parseInt(blockTimes.day),
+                            startTime: formatTime(parseInt(blockTimes.t1)),
+                            endTime: formatTime(parseInt(blockTimes.t2)),
+                            duration: (parseInt(blockTimes.t2) - parseInt(blockTimes.t1)) / 60,
+                            instructor: block.instructor || 'TBA',
+                            location: blockTimes.location || 'TBA'
+                        };
+                        
+                        // Add to course details
+                        const courseDetail = courseDetails.get(course.key);
+                        if (courseDetail) {
+                            courseDetail.sessions.push(sessionInfo);
+                            courseDetail.allTimeSlots.push(sessionInfo);
+                        }
+                        
                         scrapedClasses.push({
                             title: `${course.key} - ${block.type}`,
                             courseName: course.key,
@@ -115,12 +147,20 @@ export async function POST(request: NextRequest) {
                             day: parseInt(blockTimes.day),
                             startTime: formatTime(parseInt(blockTimes.t1)),
                             duration: (parseInt(blockTimes.t2) - parseInt(blockTimes.t1)) / 60, // duration in hours
+                            courseDetails: courseDetail // Include course details with each class event
                         });
                     }
                 });
             });
         });
     });
+    
+    // Debug logging to see course details structure
+    console.log('[API] Course details captured:', Array.from(courseDetails.entries()).map(([key, details]) => ({
+      key,
+      title: details.title,
+      sessionsCount: details.sessions.length
+    })));
     
     // --- Fetch Assignments from ICS ---
     let assignments: any[] = [];
