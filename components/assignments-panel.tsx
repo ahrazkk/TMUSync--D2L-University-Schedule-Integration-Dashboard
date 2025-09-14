@@ -23,9 +23,10 @@ interface FinishedAssignment {
 interface AssignmentsPanelProps {
   upcoming: Assignment[];
   finished: FinishedAssignment[];
+  onStatsChange?: (stats: { completed: number; total: number; viewContext: string }) => void;
 }
 
-export function AssignmentsPanel({ upcoming = [], finished = [] }: AssignmentsPanelProps) {
+export function AssignmentsPanel({ upcoming = [], finished = [], onStatsChange }: AssignmentsPanelProps) {
   console.log("AssignmentsPanel received props:", { upcoming: upcoming.length, finished: finished.length });
   
   const [showAllUpcoming, setShowAllUpcoming] = useState(false);
@@ -200,10 +201,41 @@ export function AssignmentsPanel({ upcoming = [], finished = [] }: AssignmentsPa
   
   const displayedUpcoming = showAllUpcoming ? remainingAssignments : upcomingWithinTwoWeeks;
   
-  // Calculate completion stats
-  const totalOriginalAssignments = upcoming.length;
-  const completedCount = completedAssignmentIds.size;
+  // Calculate completion stats based on current view
   const totalCompletedCount = allCompletedAssignments.length;
+  
+  // Dynamic stats based on current view (2-week vs all assignments)
+  if (showAllUpcoming) {
+    // When showing all assignments, use all data
+    var currentViewTotalAssignments = upcoming.length; // upcoming.length is the original total from server
+    var currentViewCompletedCount = totalCompletedCount;
+  } else {
+    // When showing 2-week view, count only assignments within 2 weeks
+    const twoWeeksFromNow = dayjs().add(2, 'weeks');
+    
+    // Count remaining assignments within 2 weeks
+    const remainingWithinTwoWeeks = upcomingWithinTwoWeeks.length;
+    
+    // Count completed assignments that were originally within 2 weeks
+    const completedWithinTwoWeeks = Array.from(completedAssignmentIds).filter(id => {
+      const originalAssignment = upcoming.find(assignment => getAssignmentId(assignment) === id);
+      return originalAssignment && dayjs(originalAssignment.dueDate).isBefore(twoWeeksFromNow);
+    }).length;
+    
+    var currentViewTotalAssignments = remainingWithinTwoWeeks + completedWithinTwoWeeks; // Total = remaining + completed
+    var currentViewCompletedCount = completedWithinTwoWeeks;
+  }
+
+  // Notify parent component of stats changes
+  useEffect(() => {
+    if (onStatsChange) {
+      onStatsChange({
+        completed: currentViewCompletedCount,
+        total: currentViewTotalAssignments,
+        viewContext: showAllUpcoming ? 'all' : '2 weeks'
+      });
+    }
+  }, [currentViewCompletedCount, currentViewTotalAssignments, showAllUpcoming, onStatsChange]);
 
 
   return (
@@ -303,15 +335,15 @@ export function AssignmentsPanel({ upcoming = [], finished = [] }: AssignmentsPa
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <CardTitle className="text-lg font-semibold">Recent Completions</CardTitle>
-              {totalCompletedCount > 0 && (
+              {currentViewCompletedCount > 0 && (
                 <Badge variant="outline" className="text-primary border-primary text-xs">
-                  {totalCompletedCount} completed
+                  {currentViewCompletedCount} completed{showAllUpcoming ? '' : ' (2 weeks)'}
                 </Badge>
               )}
             </div>
-            {totalOriginalAssignments > 0 && (
+            {currentViewTotalAssignments > 0 && (
               <div className="text-xs text-muted-foreground">
-                {((totalCompletedCount / (totalOriginalAssignments + totalCompletedCount)) * 100).toFixed(0)}% done
+                {((currentViewCompletedCount / currentViewTotalAssignments) * 100).toFixed(0)}% done{showAllUpcoming ? '' : ' (2 weeks)'}
               </div>
             )}
           </div>

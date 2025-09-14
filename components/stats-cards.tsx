@@ -1,38 +1,47 @@
 import { Card, CardContent } from "@/components/ui/card"
 import { Clock, CheckCircle, BookOpen, TrendingUp } from "lucide-react"
 
-const stats = [
-  {
-    title: "Weekly Hours",
-    value: "25h",
-    icon: Clock,
-    change: "+2h from last week",
-    positive: true,
-  },
-  {
-    title: "Assignments Done",
-    value: "8/12",
-    icon: CheckCircle,
-    change: "4 remaining",
-    positive: false,
-  },
-  {
-    title: "Active Courses",
-    value: "7",
-    icon: BookOpen,
-    change: "All on track",
-    positive: true,
-  },
-  {
-    title: "GPA Trend",
-    value: "3.8",
-    icon: TrendingUp,
-    change: "+0.2 this semester",
-    positive: true,
-  },
-]
+interface StatsCardsProps {
+  assignmentStats?: {
+    completed: number;
+    total: number;
+    viewContext: string; // "2 weeks" or "all"
+  };
+}
 
-export function StatsCards() {
+export function StatsCards({ assignmentStats }: StatsCardsProps) {
+  const stats = [
+    {
+      title: "Weekly Hours",
+      value: "25h",
+      icon: Clock,
+      change: "+2h from last week",
+      positive: true,
+    },
+    {
+      title: "Assignments Done",
+      value: assignmentStats ? `${assignmentStats.completed}/${assignmentStats.total}` : "0/0",
+      icon: CheckCircle,
+      change: assignmentStats ? 
+        `${assignmentStats.total - assignmentStats.completed} remaining${assignmentStats.viewContext !== 'all' ? ` (${assignmentStats.viewContext})` : ''}` : 
+        "Loading...",
+      positive: assignmentStats ? assignmentStats.completed === assignmentStats.total : false,
+    },
+    {
+      title: "Active Courses",
+      value: "7",
+      icon: BookOpen,
+      change: "All on track",
+      positive: true,
+    },
+    {
+      title: "GPA Trend",
+      value: "3.8",
+      icon: TrendingUp,
+      change: "+0.2 this semester",
+      positive: true,
+    },
+  ]
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
       {stats.map((stat) => (

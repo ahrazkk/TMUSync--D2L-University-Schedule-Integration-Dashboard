@@ -12,6 +12,11 @@ import { Skeleton } from "@/components/ui/skeleton";
 export default function DashboardPage() {
   const [schedule, setSchedule] = useState<any[] | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [assignmentStats, setAssignmentStats] = useState<{
+    completed: number;
+    total: number;
+    viewContext: string;
+  } | null>(null);
 
   useEffect(() => {
     async function loadSchedule() {
@@ -83,7 +88,7 @@ export default function DashboardPage() {
       <main className="flex-1 flex flex-col">
         <DashboardHeader />
         <div className="flex-1 p-6 space-y-6">
-          <StatsCards />
+          <StatsCards assignmentStats={assignmentStats || undefined} />
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             <div className="lg:col-span-2">
               {/* The calendar receives all events to display them visually */}
@@ -94,6 +99,7 @@ export default function DashboardPage() {
               <AssignmentsPanel 
                 upcoming={upcomingAssignments}
                 finished={finishedAssignments}
+                onStatsChange={setAssignmentStats}
               />
               <QuickActions />
             </div>
