@@ -7,6 +7,7 @@ This application helps university students track their schedules and assignments
 - **Schedule Sync**: Automatically syncs class schedules from VSB
 - **Assignment Tracking**: Fetches assignments from D2L ICS calendar feeds
 - **Multi-User Support**: Each user can configure their own D2L calendar
+- **Cross-Context Sync**: Assignment completions sync across browser contexts (normal/incognito)
 - **Completion Tracking**: Mark assignments as complete with persistent storage
 
 ## Prerequisites
@@ -90,14 +91,19 @@ https://d2l.your-university.edu/d2l/le/calendar/feed/token_abcd1234.ics
 
 ### Data Storage
 - **Schedule Data**: Cached server-side, keyed by session ID
-- **User Preferences**: Stored in encrypted iron-session cookies
-- **Assignment Completion**: Stored in browser localStorage
+- **User Preferences**: Stored in encrypted iron-session cookies  
+- **Assignment Completion**: Stored server-side, keyed by hashed VSB username
+  - Syncs across browser contexts (normal/incognito) for same user
+  - Automatic cleanup after 90 days of inactivity
+  - Maximum 1000 users stored (oldest cleaned up automatically)
 
 ### Security
 - Credentials never stored permanently
 - Session data encrypted with iron-session
+- VSB usernames hashed with SHA-256 for user identification
+- Assignment completion data tied to hashed username (not plaintext)
 - VSB login handled via Playwright automation
-- No persistent user database
+- No persistent user database required
 
 ### VSB Integration
 - Scrapes class schedules using Playwright

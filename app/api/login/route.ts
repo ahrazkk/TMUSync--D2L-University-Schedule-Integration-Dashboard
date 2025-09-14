@@ -169,6 +169,7 @@ export async function POST(request: NextRequest) {
     // 3. Save only the small ID and login status to the cookie
   session.isLoggedIn = true;
   session.id = sessionId;
+  session.username = username; // Store VSB username for stable user identification
   await session.save();
 
   // 4. Check if user needs ICS setup

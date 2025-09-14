@@ -14,4 +14,5 @@ export interface SessionData {
   isLoggedIn: boolean;
   id?: string; // <-- ADD THIS LINE
   icsUrl?: string; // User's D2L calendar URL
+  username?: string; // VSB username for stable user identification
 }
