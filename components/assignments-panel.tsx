@@ -8,6 +8,15 @@ import dayjs from 'dayjs';
 interface Assignment {
   title: string;
   course: string;
+  courseName?: string; // Full course name from ICS (e.g., "Software Project Management")
+  fullCourseInfo?: string; // Complete location field from ICS
+  description?: string; // Assignment description from ICS
+  location?: string; // Location field from ICS
+  d2lUrl?: string; // Direct link to assignment
+  matchedFromICS?: boolean; // Whether course info was extracted from ICS location
+  vsbCourseKey?: string; // Matched VSB course key
+  vsbCourseName?: string; // Matched VSB course name
+  matchedToVSB?: boolean; // Whether assignment was matched to a VSB course
   dueDate: string;
   priority: 'high' | 'medium' | 'low';
   status?: string; // e.g. 'pending', 'in-progress'
@@ -294,7 +303,36 @@ export function AssignmentsPanel({ upcoming = [], finished = [], onStatsChange }
               </div>
               <div className="flex-1 min-w-0">
                 <h4 className="font-medium text-sm text-foreground">{assignment.title}</h4>
-                <p className="text-xs text-muted-foreground">{assignment.course}</p>
+                <div className="flex items-center gap-2 mt-1">
+                  <Badge 
+                    variant="outline" 
+                    className={`text-xs ${
+                      assignment.matchedToVSB 
+                        ? 'border-blue-500 text-blue-700 dark:text-blue-400' 
+                        : assignment.matchedFromICS 
+                          ? 'border-green-500 text-green-700 dark:text-green-400' 
+                          : 'border-gray-500 text-gray-700 dark:text-gray-400'
+                    }`}
+                  >
+                    {assignment.course}
+                  </Badge>
+                  {assignment.matchedToVSB && (
+                    <span className="text-xs text-blue-600 dark:text-blue-400" title="Matched to VSB course">📚</span>
+                  )}
+                  {assignment.matchedFromICS && !assignment.matchedToVSB && (
+                    <span className="text-xs text-green-600 dark:text-green-400" title="Course info from ICS">✓</span>
+                  )}
+                </div>
+                {assignment.courseName && assignment.courseName !== assignment.course && (
+                  <p className="text-xs text-muted-foreground mt-1 truncate" title={assignment.courseName}>
+                    {assignment.courseName}
+                  </p>
+                )}
+                {assignment.description && (
+                  <p className="text-xs text-muted-foreground mt-1 line-clamp-2" title={assignment.description}>
+                    {assignment.description.substring(0, 100)}...
+                  </p>
+                )}
                 <p className="text-xs text-muted-foreground mt-1">
                   Due: {dayjs(assignment.dueDate).format('MMM D, h:mm A')}
                 </p>
@@ -320,6 +358,20 @@ export function AssignmentsPanel({ upcoming = [], finished = [], onStatsChange }
                 >
                   <CheckCircle className="w-4 h-4 text-muted-foreground hover:text-primary" />
                 </Button>
+                {assignment.d2lUrl && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => window.open(assignment.d2lUrl, '_blank')}
+                    className="h-6 w-6 p-0 hover:bg-primary/10"
+                    title="Open in D2L"
+                  >
+                    <svg className="w-3 h-3 text-muted-foreground hover:text-primary" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M4.25 5.5a.75.75 0 00-.75.75v8.5c0 .414.336.75.75.75h8.5a.75.75 0 00.75-.75v-4a.75.75 0 011.5 0v4A2.25 2.25 0 0112.75 17h-8.5A2.25 2.25 0 012 14.75v-8.5A2.25 2.25 0 014.25 4h5a.75.75 0 010 1.5h-5z" clipRule="evenodd" />
+                      <path fillRule="evenodd" d="M6.194 12.753a.75.75 0 001.06.053L16.5 4.44v2.81a.75.75 0 001.5 0v-4.5a.75.75 0 00-.75-.75h-4.5a.75.75 0 000 1.5h2.553l-9.056 8.194a.75.75 0 00-.053 1.06z" clipRule="evenodd" />
+                    </svg>
+                  </Button>
+                )}
               </div>
             </div>
           )) : (

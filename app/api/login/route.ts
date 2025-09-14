@@ -96,14 +96,24 @@ export async function POST(request: NextRequest) {
     courses.forEach((course: any) => {
         if (!course.uselection) return;
         
-        // Store detailed course information
+        // Extract offering information (contains description, title, etc.)
+        let offeringInfo = null;
+        if (course.offering) {
+            const offerings = Array.isArray(course.offering) ? course.offering : [course.offering];
+            offeringInfo = offerings[0]; // Take the first offering for course details
+        }
+        
+        // Store detailed course information from offering
         if (!courseDetails.has(course.key)) {
             courseDetails.set(course.key, {
                 key: course.key,
-                title: course.title || course.key,
-                description: course.description || 'No description available',
-                credits: course.credits || 'N/A',
-                campus: course.campus || 'N/A',
+                code: course.code || course.key.split('-')[0],
+                number: course.number || course.key.split('-')[1],
+                title: offeringInfo?.title || course.key,
+                description: offeringInfo?.desc || 'No description available',
+                credits: offeringInfo ? `${offeringInfo.credits || 'N/A'}` : 'N/A',
+                campus: 'Toronto Metropolitan University',
+                faculty: offeringInfo?.ao || 'N/A',
                 sessions: [],
                 allTimeSlots: []
             });
@@ -125,12 +135,17 @@ export async function POST(request: NextRequest) {
                     if (blockTimes) {
                         const sessionInfo = {
                             type: block.type,
+                            section: block.secNo || 'N/A',
                             day: parseInt(blockTimes.day),
                             startTime: formatTime(parseInt(blockTimes.t1)),
                             endTime: formatTime(parseInt(blockTimes.t2)),
                             duration: (parseInt(blockTimes.t2) - parseInt(blockTimes.t1)) / 60,
-                            instructor: block.instructor || 'TBA',
-                            location: blockTimes.location || 'TBA'
+                            instructor: block.teacher || 'TBA',
+                            location: block.location || 'TBA',
+                            campus: block.campus || 'N/A',
+                            credits: block.credits || matchingSelection.credits || 'N/A',
+                            status: block.status || 'Active',
+                            capacity: block.me ? `${block.os || 0}/${block.me}` : 'N/A'
                         };
                         
                         // Add to course details
@@ -159,8 +174,23 @@ export async function POST(request: NextRequest) {
     console.log('[API] Course details captured:', Array.from(courseDetails.entries()).map(([key, details]) => ({
       key,
       title: details.title,
-      sessionsCount: details.sessions.length
+      description: details.description ? details.description.substring(0, 100) + '...' : 'No description',
+      sessionsCount: details.sessions.length,
+      faculty: details.faculty,
+      firstInstructor: details.sessions[0]?.instructor || 'N/A'
     })));
+    
+    // Debug logging to see XML structure (first course only)
+    if (courses.length > 0) {
+      const firstCourse = courses[0];
+      console.log('[API] Sample course XML structure:', {
+        courseKey: firstCourse.key,
+        hasOffering: !!firstCourse.offering,
+        offeringKeys: firstCourse.offering ? Object.keys(firstCourse.offering) : [],
+        hasUselection: !!firstCourse.uselection,
+        sampleUselection: firstCourse.uselection ? (Array.isArray(firstCourse.uselection) ? firstCourse.uselection[0] : firstCourse.uselection) : null
+      });
+    }
     
     // --- Fetch Assignments from ICS ---
     let assignments: any[] = [];
@@ -182,21 +212,227 @@ export async function POST(request: NextRequest) {
             if (event.summary && event.start) {
               const startDate = dayjs(event.start);
               if (startDate.isSameOrAfter(dayjs(), 'day')) {
+                // Extract course information from the LOCATION field
+                let courseCode = '';
+                let courseName = '';
+                let fullCourseInfo = '';
+                
+                // Debug: Log the raw event data for problematic assignments
+                if (event.summary && (event.summary.includes('Establishment') || event.summary.includes('MCR'))) {
+                  console.log(`[API] DEBUG Event:`, {
+                    summary: event.summary,
+                    location: event.location,
+                    description: event.description,
+                    rawLocation: typeof event.location,
+                    allProps: Object.keys(event)
+                  });
+                }
+                
+                if (event.location && typeof event.location === 'string') {
+                  fullCourseInfo = event.location;
+                  
+                  console.log(`[API] Processing location: "${fullCourseInfo}" for event: "${event.summary}"`);
+                  
+                  // Parse different location formats:
+                  // "CPS714 - Software Project Management\Friday - F2025"
+                  // "CP8307/CPS843 - Intro to Computer Vision - F2025"
+                  // "COE70A - Engineering Capstone - F2025/W2026"
+                  // "POL507 701E - Power, Change and Technology - F2025"
+                  
+                  // Extract course code - prioritize the LOCATION field parsing
+                  // Fixed regex to properly capture course codes like COE70A, CPS843, CP8307/CPS843
+                  // Updated to handle 2-4 digit course numbers (CP8307 has 4 digits)
+                  const courseCodeMatch = fullCourseInfo.match(/^([A-Z]{2,4}\d{2,4}[A-Z]?(?:\/[A-Z]{2,4}\d{2,4}[A-Z]?)?(?:\s+\d{3}[A-Z]?)?)/);
+                  if (courseCodeMatch) {
+                    courseCode = courseCodeMatch[1].trim();
+                    console.log(`[API] Extracted course code: "${courseCode}"`);
+                    
+                    // For combined course codes like "CP8307/CPS843", prefer the second one if it exists
+                    if (courseCode.includes('/')) {
+                      const parts = courseCode.split('/');
+                      const originalCode = courseCode;
+                      courseCode = parts[parts.length - 1].trim(); // Take the last part (CPS843)
+                      console.log(`[API] Split course code: "${originalCode}" -> "${courseCode}"`);
+                    }
+                    
+                    // Remove section numbers if present (e.g., "POL507 701E" -> "POL507")
+                    const beforeSectionRemoval = courseCode;
+                    courseCode = courseCode.replace(/\s+\d{3}[A-Z]?$/, '');
+                    if (beforeSectionRemoval !== courseCode) {
+                      console.log(`[API] Removed section: "${beforeSectionRemoval}" -> "${courseCode}"`);
+                    }
+                  } else {
+                    console.log(`[API] No course code match found in location: "${fullCourseInfo}"`);
+                  }
+                  
+                  // Extract course name (text between course code and semester info)
+                  // Updated regex to handle COE70A and other patterns properly (2-4 digits)
+                  const courseNameMatch = fullCourseInfo.match(/^[A-Z]{2,4}\d{2,4}[A-Z]?(?:\/[A-Z]{2,4}\d{2,4}[A-Z]?)?\s*(?:\d{3}[A-Z]?)?\s*-\s*([^-]+?)(?:\s*-\s*[FWS]\d{4}|$)/);
+                  if (courseNameMatch) {
+                    courseName = courseNameMatch[1].trim();
+                    console.log(`[API] Extracted course name: "${courseName}"`);
+                  } else {
+                    console.log(`[API] No course name match found in location: "${fullCourseInfo}"`);
+                  }
+                } else {
+                  console.log(`[API] No location field or location is not string for event: "${event.summary}", location type: ${typeof event.location}, location value:`, event.location);
+                }
+                
+                // Fallback: if LOCATION parsing failed, try to extract from SUMMARY as last resort
+                if (!courseCode) {
+                  console.log(`[API] No course code from location, trying summary fallback for: "${event.summary}"`);
+                  // Only use summary as fallback if it starts with a course-like pattern
+                  const summaryMatch = event.summary.match(/^([A-Z]{2,4}\d{3}[A-Z]?)/);
+                  if (summaryMatch) {
+                    courseCode = summaryMatch[1];
+                    console.log(`[API] Used fallback course code from summary: "${courseCode}"`);
+                  } else {
+                    // If no course pattern found, this might not be a course assignment
+                    console.log(`[API] Warning: Could not extract course code for assignment: ${event.summary}`);
+                    courseCode = 'UNKNOWN';
+                  }
+                }
+                
+                // Special debug for problematic course codes
+                if (courseCode === 'CP830' || courseCode === 'UNKNOWN') {
+                  console.log(`[API] PROBLEM DETECTED - courseCode: "${courseCode}", summary: "${event.summary}", location: "${event.location}", fullCourseInfo: "${fullCourseInfo}"`);
+                }
+                
+                console.log(`[API] Final assignment data: course="${courseCode}", courseName="${courseName}", title="${event.summary}"`);
+                
                 assignments.push({
                   type: 'assignment',
                   title: event.summary,
                   dueDate: startDate.toISOString(),
-                  course: event.summary.split(' ')[0], // Best guess for course name
-                  priority: 'medium', // Default priority,
+                  course: courseCode,
+                  courseName: courseName || courseCode,
+                  fullCourseInfo: fullCourseInfo,
+                  description: event.description || '',
+                  location: event.location || '',
+                  priority: 'medium', // Default priority
+                  d2lUrl: event.url || '',
+                  matchedFromICS: !!courseName // Indicates successful parsing from ICS location
                 });
               }
             }
           }
         }
+        
+        console.log('[API] Parsed assignments with course info:', assignments.map(a => ({
+          title: a.title,
+          course: a.course,
+          courseName: a.courseName,
+          matchedFromICS: a.matchedFromICS
+        })));
       }
     } catch (icsError) {
       console.error('Failed to fetch or parse ICS feed:', icsError);
     }
+    
+    // --- Match Assignments to VSB Courses ---
+    // Create a mapping of course codes from VSB for better assignment matching
+    const vsbCourseMap = new Map<string, any>();
+    const normalizedVsbMap = new Map<string, any>(); // For normalized matching
+    const calendarCoursePreference = new Map<string, string>(); // To track which course code to prefer
+    
+    Array.from(courseDetails.entries()).forEach(([key, details]) => {
+      // Store exact VSB keys
+      vsbCourseMap.set(key, details);
+      
+      // Store normalized versions (remove dashes, convert to uppercase)
+      const normalizedKey = key.replace(/-/g, '').toUpperCase();
+      normalizedVsbMap.set(normalizedKey, details);
+      
+      // For courses with multiple codes (e.g., "CP8307/CPS843"), store both
+      if (key.includes('/')) {
+        const parts = key.split('/');
+        parts.forEach(part => {
+          const cleanPart = part.trim().replace(/-/g, '').toUpperCase();
+          vsbCourseMap.set(part.trim(), details);
+          normalizedVsbMap.set(cleanPart, details);
+          
+          // Set preference for the calendar course code if it matches one from assignments
+          assignments.forEach(assignment => {
+            const normalizedAssignment = assignment.course.replace(/-/g, '').toUpperCase();
+            if (normalizedAssignment === cleanPart) {
+              calendarCoursePreference.set(key, part.trim());
+              console.log(`[API] Calendar preference: ${key} -> prefer ${part.trim()} (matches assignment ${assignment.course})`);
+            }
+          });
+        });
+      }
+      
+      console.log(`[API] VSB Course mapping: ${key} -> normalized: ${normalizedKey}`);
+    });
+    
+    // Enhance assignments with VSB course data where possible
+    assignments = assignments.map(assignment => {
+      let matchedCourse = null;
+      let preferredCourseKey = null;
+      const normalizedAssignmentCourse = assignment.course.replace(/-/g, '').toUpperCase();
+      
+      console.log(`[API] Matching assignment course: "${assignment.course}" (normalized: "${normalizedAssignmentCourse}")`);
+      
+      // Try exact match first
+      if (vsbCourseMap.has(assignment.course)) {
+        matchedCourse = vsbCourseMap.get(assignment.course);
+        preferredCourseKey = assignment.course;
+        console.log(`[API] Exact match found: ${assignment.course}`);
+      } 
+      // Try normalized match (handles dash differences)
+      else if (normalizedVsbMap.has(normalizedAssignmentCourse)) {
+        matchedCourse = normalizedVsbMap.get(normalizedAssignmentCourse);
+        // Check if there's a calendar preference for this course
+        for (const [vsbKey, preferredCode] of calendarCoursePreference.entries()) {
+          if (normalizedVsbMap.get(normalizedAssignmentCourse) === vsbCourseMap.get(vsbKey)) {
+            preferredCourseKey = preferredCode;
+            console.log(`[API] Using calendar preference: ${vsbKey} -> ${preferredCode}`);
+            break;
+          }
+        }
+        if (!preferredCourseKey) {
+          // Find the VSB key that matches this normalized course
+          for (const [vsbKey, vsbData] of vsbCourseMap.entries()) {
+            if (vsbData === matchedCourse) {
+              preferredCourseKey = vsbKey;
+              break;
+            }
+          }
+        }
+        console.log(`[API] Normalized match found: ${assignment.course} -> ${normalizedAssignmentCourse} -> ${preferredCourseKey}`);
+      } 
+      // Try partial matches for complex course codes
+      else {
+        for (const [vsbKey, vsbData] of normalizedVsbMap.entries()) {
+          if (normalizedAssignmentCourse.includes(vsbKey) || vsbKey.includes(normalizedAssignmentCourse)) {
+            matchedCourse = vsbData;
+            preferredCourseKey = calendarCoursePreference.get(matchedCourse.key) || matchedCourse.key;
+            console.log(`[API] Partial match found: ${assignment.course} matches ${vsbKey} -> ${preferredCourseKey}`);
+            break;
+          }
+        }
+      }
+      
+      if (matchedCourse) {
+        return {
+          ...assignment,
+          vsbCourseKey: preferredCourseKey || matchedCourse.key,
+          vsbCourseName: matchedCourse.title,
+          matchedToVSB: true
+        };
+      } else {
+        console.log(`[API] No VSB match found for: ${assignment.course}`);
+      }
+      
+      return assignment;
+    });
+    
+    console.log('[API] Assignment-to-VSB course matching completed:', assignments.map(a => ({
+      title: a.title,
+      course: a.course,
+      vsbCourseKey: a.vsbCourseKey,
+      matchedToVSB: a.matchedToVSB || false
+    })));
     
     const combinedSchedule = [...scrapedClasses, ...assignments];
 

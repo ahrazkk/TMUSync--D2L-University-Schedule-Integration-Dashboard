@@ -10,20 +10,28 @@ import { cn } from "@/lib/utils"
 
 interface CourseSession {
   type: string;
+  section?: string;
   day: number;
   startTime: string;
   endTime: string;
   duration: number;
   instructor: string;
   location: string;
+  campus?: string;
+  credits?: string;
+  status?: string;
+  capacity?: string;
 }
 
 interface CourseDetails {
   key: string;
+  code?: string;
+  number?: string;
   title: string;
   description: string;
   credits: string;
   campus: string;
+  faculty?: string;
   sessions: CourseSession[];
   allTimeSlots: CourseSession[];
 }
@@ -90,12 +98,24 @@ export function CourseDetailCard({ courseDetails, onClose }: CourseDetailCardPro
             <h3 className="text-lg font-medium text-muted-foreground">
               {courseDetails.title}
             </h3>
-            {courseDetails.campus !== 'N/A' && (
-              <Badge variant="outline" className="w-fit">
-                <MapPin className="w-3 h-3 mr-1" />
-                {courseDetails.campus}
-              </Badge>
-            )}
+            <div className="flex flex-wrap gap-2">
+              {courseDetails.campus !== 'N/A' && (
+                <Badge variant="outline" className="text-xs">
+                  <MapPin className="w-3 h-3 mr-1" />
+                  {courseDetails.campus}
+                </Badge>
+              )}
+              {courseDetails.faculty && courseDetails.faculty !== 'N/A' && (
+                <Badge variant="outline" className="text-xs">
+                  📚 {courseDetails.faculty}
+                </Badge>
+              )}
+              {courseDetails.code && courseDetails.number && (
+                <Badge variant="outline" className="text-xs">
+                  {courseDetails.code} {courseDetails.number}
+                </Badge>
+              )}
+            </div>
           </div>
           <Button 
             variant="ghost" 
@@ -167,6 +187,9 @@ export function CourseDetailCard({ courseDetails, onClose }: CourseDetailCardPro
                             <Clock className="w-3 h-3" />
                             <span>{dayNames[session.day - 1]}</span>
                             <span>{session.startTime}{session.endTime !== 'N/A' ? ` - ${session.endTime}` : ''}</span>
+                            {session.instructor !== 'TBA' && (
+                              <span className="text-xs">• {session.instructor}</span>
+                            )}
                           </div>
                         ))}
                         {sessions.length > 2 && (
@@ -195,12 +218,17 @@ export function CourseDetailCard({ courseDetails, onClose }: CourseDetailCardPro
             {sortedSessions.length > 0 ? (
               <div className="space-y-3">
                 {sortedSessions.map((session, index) => (
-                  <div key={index} className="border rounded-lg p-3 space-y-2">
+                  <div key={index} className="border rounded-lg p-3 space-y-3">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
                         <Badge className={cn("text-xs", getSessionTypeColor(session.type))}>
                           {session.type}
                         </Badge>
+                        {session.section && session.section !== 'N/A' && (
+                          <span className="text-xs text-muted-foreground">
+                            Section {session.section}
+                          </span>
+                        )}
                         <span className="font-medium text-sm">
                           {dayNames[session.day - 1]}
                         </span>
@@ -215,7 +243,7 @@ export function CourseDetailCard({ courseDetails, onClose }: CourseDetailCardPro
                       </div>
                     </div>
                     
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 text-xs">
                       {session.instructor !== 'TBA' && (
                         <div className="flex items-center gap-1 text-muted-foreground">
                           <User className="w-3 h-3" />
@@ -225,10 +253,26 @@ export function CourseDetailCard({ courseDetails, onClose }: CourseDetailCardPro
                       {session.location !== 'TBA' && (
                         <div className="flex items-center gap-1 text-muted-foreground">
                           <MapPin className="w-3 h-3" />
-                          <span>{session.location}</span>
+                          <span className="truncate" title={session.location}>
+                            {session.location}
+                          </span>
+                        </div>
+                      )}
+                      {session.capacity && session.capacity !== 'N/A' && (
+                        <div className="flex items-center gap-1 text-muted-foreground">
+                          <span className="text-xs">👥</span>
+                          <span>{session.capacity}</span>
                         </div>
                       )}
                     </div>
+                    
+                    {session.status && session.status !== 'Active' && session.status !== '' && (
+                      <div className="mt-2">
+                        <Badge variant="outline" className="text-xs">
+                          Status: {session.status}
+                        </Badge>
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>
