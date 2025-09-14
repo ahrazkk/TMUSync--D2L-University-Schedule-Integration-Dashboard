@@ -8,7 +8,7 @@ A sophisticated Next.js 14 application that automatically scrapes and tracks uni
 
 ## 🚀 Quick Start![TMUSync Dashboard Screenshot]
 
-*(You should replace this with a high-quality screenshot of your final application)*
+heres a link to the flowchart: https://claude.ai/public/artifacts/b5d81d9b-9a52-46c7-b718-0697dcaf2438
 
 ### Prerequisites
 
