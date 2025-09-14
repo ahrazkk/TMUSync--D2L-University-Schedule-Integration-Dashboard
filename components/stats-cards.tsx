@@ -7,9 +7,13 @@ interface StatsCardsProps {
     total: number;
     viewContext: string; // "2 weeks" or "all"
   };
+  courseStats?: {
+    activeCourses: number;
+    courseNames: string[];
+  };
 }
 
-export function StatsCards({ assignmentStats }: StatsCardsProps) {
+export function StatsCards({ assignmentStats, courseStats }: StatsCardsProps) {
   const stats = [
     {
       title: "Weekly Hours",
@@ -29,9 +33,15 @@ export function StatsCards({ assignmentStats }: StatsCardsProps) {
     },
     {
       title: "Active Courses",
-      value: "7",
+      value: courseStats ? courseStats.activeCourses.toString() : "0",
       icon: BookOpen,
-      change: "All on track",
+      change: courseStats ? 
+        courseStats.activeCourses > 0 ? 
+          courseStats.activeCourses <= 3 ? 
+            courseStats.courseNames.join(", ") : 
+            `${courseStats.courseNames.slice(0, 2).join(", ")} +${courseStats.activeCourses - 2} more` :
+          "No active courses" :
+        "Loading...",
       positive: true,
     },
     {

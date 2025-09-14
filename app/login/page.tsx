@@ -55,18 +55,21 @@ export default function LoginPage() {
         throw new Error(result.message || "An unknown error occurred.")
       }
       
-
-        // --- MODIFICATION ---
+      // --- MODIFICATION ---
       // 1. Check if schedule data exists in the response
       if (result.schedule) {
         // 2. Save it to localStorage as a JSON string
         localStorage.setItem('userSchedule', JSON.stringify(result.schedule));
       }
       
-      // // Redirect to dashboard on successful login
-      // router.push("/")
-      // router.refresh(); // Important to refresh server components
-              window.location.href = '/'; // This forces a full page load and ensures the new cookie is sent
+      // 3. Check if user needs to set up ICS URL
+      if (result.needsSetup) {
+        // Redirect to setup page
+        router.push("/setup")
+      } else {
+        // Redirect to dashboard
+        window.location.href = '/'; // This forces a full page load and ensures the new cookie is sent
+      }
 
     } catch (err: any) {
       setError(err.message)

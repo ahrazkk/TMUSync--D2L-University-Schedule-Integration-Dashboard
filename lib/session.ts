@@ -13,4 +13,5 @@ export const sessionOptions: SessionOptions = {
 export interface SessionData {
   isLoggedIn: boolean;
   id?: string; // <-- ADD THIS LINE
+  icsUrl?: string; // User's D2L calendar URL
 }

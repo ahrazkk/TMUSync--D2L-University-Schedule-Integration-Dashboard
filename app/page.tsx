@@ -82,13 +82,57 @@ export default function DashboardPage() {
   const upcomingAssignments = allEvents.filter(event => event.type === 'assignment');
   const finishedAssignments: any[] = [];
 
+  // Calculate course statistics
+  const courseStats = allEvents.length > 0 ? (() => {
+    // Use the course keys from VSB (stored in courseName field from scraper)
+    // This properly groups labs/lectures under the same course key
+    const uniqueCourseKeys = new Set<string>();
+    const courseKeyToDisplayName = new Map<string, string>();
+    
+    allEvents.forEach(event => {
+      // The courseName field contains the actual course key from VSB (e.g., "CPS109")
+      // This is the key from the first file (enrollment data) that groups all sections
+      const courseKey = event.courseName; // This is course.key from the scraper
+      
+      if (courseKey && courseKey.trim() !== '') {
+        uniqueCourseKeys.add(courseKey);
+        
+        // Use the course key as display name (since it's already clean like "CPS109")
+        courseKeyToDisplayName.set(courseKey, courseKey);
+      }
+    });
+
+    // Debug: Show the VSB course structure
+    console.log('📚 VSB Course Analysis:', {
+      totalEvents: allEvents.length,
+      sampleEvents: allEvents.slice(0, 5).map(e => ({
+        title: e.title,           // e.g., "CPS109 - LEC"
+        courseName: e.courseName, // e.g., "CPS109" (the course key)
+        type: e.type              // e.g., "class"
+      })),
+      uniqueCourseKeys: Array.from(uniqueCourseKeys).sort(),
+      totalUniqueCourses: uniqueCourseKeys.size
+    });
+
+    const courseKeys = Array.from(uniqueCourseKeys);
+    const courseNames = courseKeys.map(key => courseKeyToDisplayName.get(key) || key);
+    
+    return {
+      activeCourses: courseNames.length,
+      courseNames: courseNames
+    };
+  })() : undefined;
+
   return (
     <div className="flex min-h-screen bg-background">
       <Sidebar />
       <main className="flex-1 flex flex-col">
         <DashboardHeader />
         <div className="flex-1 p-6 space-y-6">
-          <StatsCards assignmentStats={assignmentStats || undefined} />
+          <StatsCards 
+            assignmentStats={assignmentStats || undefined} 
+            courseStats={courseStats}
+          />
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             <div className="lg:col-span-2">
               {/* The calendar receives all events to display them visually */}

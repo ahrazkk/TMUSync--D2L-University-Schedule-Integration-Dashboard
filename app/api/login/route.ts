@@ -125,23 +125,31 @@ export async function POST(request: NextRequest) {
     // --- Fetch Assignments from ICS ---
     let assignments: any[] = [];
     try {
-      console.log('[API] Fetching assignments from D2L ICS feed...');
-      const icsResponse = await axios.get(process.env.D2L_ICS_URL as string);
-      const cal = parseICS(icsResponse.data);
+      // Use user's ICS URL if available, otherwise fall back to env variable
+      const icsUrl = session.icsUrl || process.env.D2L_ICS_URL as string;
       
-      for (const key in cal) {
-        if (cal[key].type === 'VEVENT') {
-          const event = cal[key];
-          if (event.summary && event.start) {
-            const startDate = dayjs(event.start);
-            if (startDate.isSameOrAfter(dayjs(), 'day')) {
-              assignments.push({
-                type: 'assignment',
-                title: event.summary,
-                dueDate: startDate.toISOString(),
-                course: event.summary.split(' ')[0], // Best guess for course name
-                priority: 'medium', // Default priority
-              });
+      if (!icsUrl) {
+        console.log('[API] No ICS URL configured, skipping assignment fetch');
+        assignments = [];
+      } else {
+        console.log('[API] Fetching assignments from ICS URL...');
+        const icsResponse = await axios.get(icsUrl);
+        const cal = parseICS(icsResponse.data);
+        
+        for (const key in cal) {
+          if (cal[key].type === 'VEVENT') {
+            const event = cal[key];
+            if (event.summary && event.start) {
+              const startDate = dayjs(event.start);
+              if (startDate.isSameOrAfter(dayjs(), 'day')) {
+                assignments.push({
+                  type: 'assignment',
+                  title: event.summary,
+                  dueDate: startDate.toISOString(),
+                  course: event.summary.split(' ')[0], // Best guess for course name
+                  priority: 'medium', // Default priority,
+                });
+              }
             }
           }
         }
@@ -163,8 +171,15 @@ export async function POST(request: NextRequest) {
   session.id = sessionId;
   await session.save();
 
+  // 4. Check if user needs ICS setup
+  const needsSetup = !session.icsUrl && !process.env.D2L_ICS_URL;
+
   // Return a response with the session cookie set
-return NextResponse.json({ success: true, schedule: combinedSchedule });
+return NextResponse.json({ 
+  success: true, 
+  schedule: combinedSchedule,
+  needsSetup 
+});
 
   } catch (error) {
     console.error('[API] Login/scraping process failed:', error);
