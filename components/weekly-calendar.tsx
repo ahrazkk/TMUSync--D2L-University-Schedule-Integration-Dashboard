@@ -14,6 +14,8 @@ dayjs.extend(isBetween)
 
 const days = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"]
 const timeSlots = Array.from({ length: 14 }, (_, i) => dayjs().hour(i + 8).minute(0).format("h:00 A"));
+// Add "Early Morning" and "Late Evening" slots for assignments outside 8 AM - 9 PM
+const timeSlotsWithExtraRows = [...timeSlots, "Early Morning", "Late Evening"];
 
 const getEventGridRows = (startTime: string, durationHours: number) => {
   const start = dayjs(startTime, "h:mm A");
@@ -38,11 +40,22 @@ const eventColors = [
   "bg-sky-500/20 border border-sky-700 text-sky-800 dark:bg-sky-500/30 dark:border-sky-500 dark:text-sky-200",
   "bg-red-500/20 border border-red-700 text-red-800 dark:bg-red-500/30 dark:border-red-500 dark:text-red-200",
 ];
+
+// Enhanced solid colors for current day events
+const eventColorsEnhanced = [
+  "bg-blue-500/60 border border-blue-700 text-blue-900 dark:bg-blue-500/70 dark:border-blue-400 dark:text-blue-100",
+  "bg-emerald-500/60 border border-emerald-700 text-emerald-900 dark:bg-emerald-500/70 dark:border-emerald-400 dark:text-emerald-100",
+  "bg-amber-500/60 border border-amber-700 text-amber-900 dark:bg-amber-500/70 dark:border-amber-400 dark:text-amber-100",
+  "bg-violet-500/60 border border-violet-700 text-violet-900 dark:bg-violet-500/70 dark:border-violet-400 dark:text-violet-100",
+  "bg-rose-500/60 border border-rose-700 text-rose-900 dark:bg-rose-500/70 dark:border-rose-400 dark:text-rose-100",
+  "bg-sky-500/60 border border-sky-700 text-sky-900 dark:bg-sky-500/70 dark:border-sky-400 dark:text-sky-100",
+  "bg-red-500/60 border border-red-700 text-red-900 dark:bg-red-500/70 dark:border-red-400 dark:text-red-100",
+];
 const courseColorMap = new Map<string, string>();
 let colorIndex = 0;
 let isRenderClearing = false;
 
-const getCourseColor = (courseName: string, isFirstRender: boolean) => {
+const getCourseColor = (courseName: string, isFirstRender: boolean, isCurrentDay: boolean = false) => {
   if (isFirstRender) {
     courseColorMap.clear();
     colorIndex = 0;
@@ -55,7 +68,10 @@ const getCourseColor = (courseName: string, isFirstRender: boolean) => {
     courseColorMap.set(courseName, eventColors[colorIndex % eventColors.length]);
     colorIndex++;
   }
-  return courseColorMap.get(courseName);
+  
+  // Return enhanced color for current day, regular color otherwise
+  const baseColorIndex = eventColors.indexOf(courseColorMap.get(courseName)!);
+  return isCurrentDay ? eventColorsEnhanced[baseColorIndex] : courseColorMap.get(courseName);
 };
 
 // Helper function to detect and handle overlapping events
@@ -160,7 +176,7 @@ export function WeeklyCalendar({ events = [] }: { events: CalendarEvent[] }) {
         </div>
       </CardHeader>
       <CardContent>
-        <div className="grid grid-cols-[6rem_repeat(7,1fr)] grid-rows-[auto_auto_repeat(28,20px)]">
+        <div className="grid grid-cols-[6rem_repeat(7,1fr)] grid-rows-[auto_auto_repeat(32,20px)]">
           <div className="sticky top-0 z-20 bg-card"></div>
           {days.map((day, index) => (
             <div 
@@ -176,13 +192,28 @@ export function WeeklyCalendar({ events = [] }: { events: CalendarEvent[] }) {
           
           <div className="row-start-2 col-start-1 text-xs font-medium text-muted-foreground p-2 text-right pr-4 z-10 sticky top-12 bg-card border-b border-r">All-Day</div>
           {days.map((day, index) => (
-             <div key={`${day}-allday`} className="row-start-2 col-start-${index + 2} border-b border-r border-border/50 p-1 space-y-1"></div>
+             <div 
+               key={`${day}-allday`} 
+               className={cn(
+                 "row-start-2 border-b border-r border-border/50 p-1 space-y-1",
+                 dayjs().isSame(currentDate, 'week') && index === today && "bg-blue-100/50 dark:bg-blue-950/40"
+               )}
+               style={{ gridColumnStart: index + 2 }}
+             ></div>
           ))}
 
-          {timeSlots.map((time, index) => (
+          {timeSlotsWithExtraRows.map((time, index) => (
             <div key={time} className="row-start-auto col-start-1 col-end-10 grid grid-cols-subgrid -mt-px" style={{ gridRowStart: index * 2 + 3 }}>
               <div className="text-xs text-muted-foreground p-2 text-right pr-4 z-10 sticky top-12 bg-card">{time}</div>
-              {days.map(day => <div key={`${day}-cell-${time}`} className="border-t border-r border-border/50"></div>)}
+              {days.map((day, dayIndex) => (
+                <div 
+                  key={`${day}-cell-${time}`} 
+                  className={cn(
+                    "border-t border-r border-border/50",
+                    dayjs().isSame(currentDate, 'week') && dayIndex === today && "bg-blue-100/50 dark:bg-blue-950/40"
+                  )}
+                ></div>
+              ))}
             </div>
           ))}
           
@@ -198,7 +229,8 @@ export function WeeklyCalendar({ events = [] }: { events: CalendarEvent[] }) {
             if (event.type === 'class' && event.day && event.startTime && event.duration) {
               const uniqueKey = `class-${index}`;
               const { gridRow } = getEventGridRows(event.startTime, event.duration);
-              const colorClass = getCourseColor(event.courseName, index === 0 && !isRenderClearing);
+              const isCurrentDay = dayjs().isSame(currentDate, 'week') && (event.day - 1) === today;
+              const colorClass = getCourseColor(event.courseName, index === 0 && !isRenderClearing, isCurrentDay);
               const layout = eventLayouts[index] || { width: '100%', left: '0%', zIndex: 10 };
               
               return (
@@ -224,16 +256,36 @@ export function WeeklyCalendar({ events = [] }: { events: CalendarEvent[] }) {
               const dayIndex = eventDate.day();
               const isAllDay = eventDate.hour() === 0 && eventDate.minute() === 0;
               const layout = eventLayouts[index] || { width: '100%', left: '0%', zIndex: 10 };
+              const isCurrentDay = dayjs().isSame(currentDate, 'week') && dayIndex === today;
+              
+              // Check if assignment time is outside 8 AM - 9 PM bounds
+              const assignmentHour = eventDate.hour();
+              const isEarlyMorning = assignmentHour < 8;
+              const isLateEvening = assignmentHour >= 21; // 9 PM = 21 in 24-hour
+              
+              let gridRowValue;
+              if (isAllDay) {
+                gridRowValue = '2 / span 1'; // All-day row
+              } else if (isEarlyMorning) {
+                gridRowValue = '31 / span 2'; // Early Morning row (after all 14 time slots + header + all-day = row 31)
+              } else if (isLateEvening) {
+                gridRowValue = '33 / span 2'; // Late Evening row (after Early Morning = row 33)
+              } else {
+                gridRowValue = getEventGridRows(eventDate.format('h:mm A'), 1).gridRow;
+              }
+
+              // Enhanced assignment colors for current day
+              const assignmentColorClass = isCurrentDay 
+                ? "relative rounded bg-slate-900/70 text-slate-100 border border-slate-600 text-xs p-1 m-1 font-medium overflow-hidden flex items-start justify-start gap-1 dark:bg-slate-950/80 dark:text-slate-200 dark:border-slate-400"
+                : "relative rounded bg-slate-900/40 text-slate-200 border border-slate-700/50 text-xs p-1 m-1 font-medium overflow-hidden flex items-start justify-start gap-1 dark:bg-slate-950/50 dark:text-slate-300 dark:border-slate-600/40";
 
               return (
                 <div
                   key={uniqueKey}
-                  className="relative rounded bg-destructive/80 text-destructive-foreground border border-destructive text-xs p-1 font-semibold overflow-hidden flex items-center gap-1"
+                  className={assignmentColorClass}
                   style={{
                     gridColumnStart: dayIndex + 2,
-                    // If it's an all-day event, place it in the all-day row (row 2).
-                    // Otherwise, calculate its position like a class, assuming a 1-hour duration.
-                    gridRow: isAllDay ? '2 / span 1' : getEventGridRows(eventDate.format('h:mm A'), 1).gridRow,
+                    gridRow: gridRowValue,
                     width: layout.width === '100%' ? 'auto' : layout.width,
                     marginLeft: layout.left !== '0%' ? layout.left : '0px',
                     zIndex: layout.zIndex

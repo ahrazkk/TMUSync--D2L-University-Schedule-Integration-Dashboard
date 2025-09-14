@@ -14,31 +14,37 @@ export default function DashboardPage() {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    const savedSchedule = localStorage.getItem('userSchedule');
-    
-    if (savedSchedule) {
-      setSchedule(JSON.parse(savedSchedule));
-      setIsLoading(false);
-    } else {
-      async function fetchSchedule() {
-        try {
-          const response = await fetch('/api/schedule', { credentials: 'include' });
-          if (!response.ok) {
+    async function loadSchedule() {
+      const savedSchedule = localStorage.getItem('userSchedule');
+      
+      if (savedSchedule) {
+        const parsed = JSON.parse(savedSchedule);
+        setSchedule(parsed);
+        setIsLoading(false);
+      } else {
+        // No saved schedule, fetch fresh from backend
+        async function fetchSchedule() {
+          try {
+            const response = await fetch('/api/schedule', { credentials: 'include' });
+            if (!response.ok) {
+              window.location.href = '/login';
+              return;
+            }
+            const data = await response.json();
+            localStorage.setItem('userSchedule', JSON.stringify(data.schedule));
+            setSchedule(data.schedule);
+          } catch (error) {
+            console.error("Failed to fetch schedule, redirecting to login.", error);
             window.location.href = '/login';
-            return;
+          } finally {
+            setIsLoading(false);
           }
-          const data = await response.json();
-          localStorage.setItem('userSchedule', JSON.stringify(data.schedule));
-          setSchedule(data.schedule);
-        } catch (error) {
-          console.error("Failed to fetch schedule, redirecting to login.", error);
-          window.location.href = '/login';
-        } finally {
-          setIsLoading(false);
         }
+        fetchSchedule();
       }
-      fetchSchedule();
     }
+    
+    loadSchedule();
   }, []);
 
   if (isLoading) {
