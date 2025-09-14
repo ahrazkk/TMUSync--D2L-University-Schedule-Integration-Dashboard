@@ -61,8 +61,26 @@ export default function DashboardPage() {
             const scheduleResponse = await fetch('/api/schedule', { credentials: 'include' });
             
             if (!scheduleResponse.ok) {
-              window.location.href = '/login';
-              return;
+              // --- Robust Refresh Prevention ---
+              const now = Date.now();
+              const attemptsRaw = sessionStorage.getItem('refreshAttempts');
+              let attempts: { count: number; first: number } = attemptsRaw ? JSON.parse(attemptsRaw) : { count: 0, first: now };
+              // If first attempt is older than 30s, reset
+              if (now - attempts.first > 30_000) {
+                attempts = { count: 0, first: now };
+              }
+              attempts.count++;
+              sessionStorage.setItem('refreshAttempts', JSON.stringify(attempts));
+              if (attempts.count > 3) {
+                // Too many attempts in 30s, stop redirecting
+                setIsLoading(false);
+                console.error('Too many failed login attempts. Please check your credentials or try again later.');
+                // Optionally show a message to the user here
+                return;
+              } else {
+                window.location.href = '/login';
+                return;
+              }
             }
             
             const scheduleData = await scheduleResponse.json();
@@ -83,8 +101,23 @@ export default function DashboardPage() {
             
             console.log('📚 Fetched fresh data and synced with local course bindings');
           } catch (error) {
-            console.error("Failed to fetch data, redirecting to login.", error);
-            window.location.href = '/login';
+            // --- Robust Refresh Prevention (network error) ---
+            const now = Date.now();
+            const attemptsRaw = sessionStorage.getItem('refreshAttempts');
+            let attempts: { count: number; first: number } = attemptsRaw ? JSON.parse(attemptsRaw) : { count: 0, first: now };
+            if (now - attempts.first > 30_000) {
+              attempts = { count: 0, first: now };
+            }
+            attempts.count++;
+            sessionStorage.setItem('refreshAttempts', JSON.stringify(attempts));
+            if (attempts.count > 3) {
+              setIsLoading(false);
+              console.error('Too many failed login attempts (network error). Please check your connection or try again later.');
+              return;
+            } else {
+              window.location.href = '/login';
+              return;
+            }
           } finally {
             setIsLoading(false);
           }
