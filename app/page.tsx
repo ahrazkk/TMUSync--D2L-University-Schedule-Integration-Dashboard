@@ -10,6 +10,7 @@ import { QuickActions } from "@/components/quick-actions";
 import { CourseDetailCard } from "@/components/course-detail-card";
 import { AssignmentDetailCard } from "@/components/assignment-detail-card";
 import { Skeleton } from "@/components/ui/skeleton";
+import { MobileBottomNav } from "@/components/mobile-bottom-nav";
 import { 
   saveAssignmentsWithBindings, 
   loadAssignmentsWithBindings, 
@@ -28,6 +29,7 @@ export default function DashboardPage() {
     total: number;
     viewContext: string;
   } | null>(null);
+  const [showMobileSearch, setShowMobileSearch] = useState(false);
   
   // Shared assignment completion state - initialized with a flag to prevent premature saving
   const [completedAssignmentIds, setCompletedAssignmentIds] = useState<Set<string>>(new Set());
@@ -473,22 +475,28 @@ export default function DashboardPage() {
   if (isLoading) {
     return (
       <div className="flex min-h-screen bg-background">
-        <Sidebar />
+        {/* Hide sidebar on mobile */}
+        <div className="hidden lg:block">
+          <Sidebar />
+        </div>
         <main className="flex-1 flex flex-col">
           <DashboardHeader />
-          <div className="flex-1 p-6 space-y-6">
+          <div className="flex-1 p-3 md:p-6 space-y-4 md:space-y-6 pb-20 lg:pb-6">
             <StatsCards />
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              <div className="lg-col-span-2 space-y-2">
-                <Skeleton className="h-12 w-1/3" />
-                <Skeleton className="h-[500px] w-full" />
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-6">
+              <div className="lg:col-span-2 space-y-2">
+                <Skeleton className="h-8 md:h-12 w-1/2 md:w-1/3" />
+                <Skeleton className="h-[300px] md:h-[500px] w-full" />
               </div>
-              <div className="space-y-6">
-                <Skeleton className="h-[300px] w-full" />
-                <Skeleton className="h-[200px] w-full" />
+              <div className="space-y-4 md:space-y-6">
+                <Skeleton className="h-[200px] md:h-[300px] w-full" />
+                <Skeleton className="h-[150px] md:h-[200px] w-full" />
               </div>
             </div>
           </div>
+          
+          {/* Mobile Bottom Navigation */}
+          <MobileBottomNav onSearchClick={() => setShowMobileSearch(true)} />
         </main>
       </div>
     )
@@ -666,17 +674,24 @@ export default function DashboardPage() {
 
   return (
     <div className="flex min-h-screen bg-background">
-      <Sidebar />
+      {/* Hide sidebar on mobile devices (screens smaller than lg) */}
+      <div className="hidden lg:block">
+        <Sidebar />
+      </div>
       <main className="flex-1 flex flex-col">
         <DashboardHeader />
-        <div className="flex-1 p-6 space-y-6">
-          <StatsCards 
-            assignmentStats={assignmentStats || undefined} 
-            courseStats={courseStats}
-          />
+        {/* Add bottom padding on mobile to account for bottom navigation */}
+        <div className="flex-1 p-3 md:p-6 space-y-4 md:space-y-6 pb-20 lg:pb-6">
+          <div data-testid="stats-cards">
+            <StatsCards 
+              assignmentStats={assignmentStats || undefined} 
+              courseStats={courseStats}
+            />
+          </div>
           
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <div className="lg:col-span-2 space-y-6">
+          {/* Mobile: Stack everything vertically, Desktop: 3-column grid */}
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-6">
+            <div className="lg:col-span-2 space-y-4 md:space-y-6">
               {/* Course Detail Card - shown above calendar when a course is selected */}
               {selectedCourse && (
                 <CourseDetailCard 
@@ -700,26 +715,33 @@ export default function DashboardPage() {
                 />
               )}
               {/* The calendar receives all events to display them visually */}
-              <WeeklyCalendar 
-                events={allEvents} 
-                onCourseClick={handleCourseClick}
-                onAssignmentClick={handleAssignmentClick}
-              />
+              <div data-testid="weekly-calendar">
+                <WeeklyCalendar 
+                  events={allEvents} 
+                  onCourseClick={handleCourseClick}
+                  onAssignmentClick={handleAssignmentClick}
+                />
+              </div>
             </div>
-            <div className="space-y-6">
+            <div className="space-y-4 md:space-y-6">
               {/* The assignments panel receives only the assignment events for its list */}
-              <AssignmentsPanel 
-                upcoming={upcomingAssignments}
-                finished={finishedAssignments}
-                onStatsChange={setAssignmentStats}
-                isAssignmentCompleted={isAssignmentCompleted}
-                markAssignmentAsComplete={markAssignmentAsComplete}
-                markAssignmentAsIncomplete={markAssignmentAsIncomplete}
-              />
+              <div data-testid="assignments-panel">
+                <AssignmentsPanel 
+                  upcoming={upcomingAssignments}
+                  finished={finishedAssignments}
+                  onStatsChange={setAssignmentStats}
+                  isAssignmentCompleted={isAssignmentCompleted}
+                  markAssignmentAsComplete={markAssignmentAsComplete}
+                  markAssignmentAsIncomplete={markAssignmentAsIncomplete}
+                />
+              </div>
               <QuickActions />
             </div>
           </div>
         </div>
+        
+        {/* Mobile Bottom Navigation */}
+        <MobileBottomNav onSearchClick={() => setShowMobileSearch(true)} />
       </main>
     </div>
   )

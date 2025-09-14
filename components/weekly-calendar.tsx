@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { ChevronLeft, ChevronRight, Plus, FileText } from "lucide-react"
@@ -143,7 +143,19 @@ interface WeeklyCalendarProps {
 
 export function WeeklyCalendar({ events = [], onCourseClick, onAssignmentClick }: WeeklyCalendarProps) {
   const [currentDate, setCurrentDate] = useState(dayjs());
+  const [isMobileView, setIsMobileView] = useState(false);
   const today = dayjs().day();
+  
+  // Detect mobile screen size
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobileView(window.innerWidth < 1024); // lg breakpoint
+    };
+    
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
 
   const handlePreviousWeek = () => {
     setCurrentDate(currentDate.subtract(1, 'week'));
@@ -163,6 +175,124 @@ export function WeeklyCalendar({ events = [], onCourseClick, onAssignmentClick }
 
   // Calculate event layouts for overlapping events
   const eventLayouts = getEventLayout(events, currentDate);
+
+  // Mobile view: Simple list view for today and upcoming events
+  if (isMobileView) {
+    const todayDate = dayjs();
+    const todayEvents = events.filter(event => {
+      if (event.type === 'class' && event.day) {
+        const eventDay = todayDate.startOf('week').add(event.day - 1, 'day');
+        return eventDay.isSame(todayDate, 'day');
+      } else if (event.type === 'assignment' && event.dueDate) {
+        const eventDate = dayjs(event.dueDate);
+        return eventDate.isSame(todayDate, 'day');
+      }
+      return false;
+    });
+    
+    const upcomingEvents = events.filter(event => {
+      if (event.type === 'assignment' && event.dueDate) {
+        const eventDate = dayjs(event.dueDate);
+        return eventDate.isAfter(todayDate, 'day') && eventDate.isBefore(todayDate.add(7, 'day'), 'day');
+      }
+      return false;
+    }).slice(0, 5); // Show only next 5 upcoming assignments
+
+    return (
+      <Card className="w-full">
+        <CardHeader className="space-y-3 pb-4">
+          <div className="flex items-center justify-between">
+            <CardTitle className="text-lg font-semibold">Schedule</CardTitle>
+          </div>
+          <div className="flex items-center justify-between">
+            <Button variant="ghost" size="sm" onClick={handlePreviousWeek}>
+              <ChevronLeft className="w-4 h-4" />
+            </Button>
+            <div className="flex items-center gap-2">
+              <span className="font-medium text-muted-foreground text-sm">{formattedDateRange}</span>
+              <Button variant="outline" size="sm" onClick={handleToday} className="text-xs px-2 py-1">
+                Today
+              </Button>
+            </div>
+            <Button variant="ghost" size="sm" onClick={handleNextWeek}>
+              <ChevronRight className="w-4 h-4" />
+            </Button>
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {/* Today's Events */}
+          <div>
+            <h3 className="text-sm font-medium text-muted-foreground mb-2">Today ({todayDate.format('MMM D')})</h3>
+            <div className="space-y-2">
+              {todayEvents.length > 0 ? (
+                todayEvents.map((event, index) => {
+                  const isClass = event.type === 'class';
+                  const color = isClass 
+                    ? getCourseColor(event.courseName, index === 0, true)
+                    : "bg-slate-900/70 text-slate-100 border border-slate-600 dark:bg-slate-950/80 dark:text-slate-200 dark:border-slate-400";
+                    
+                  return (
+                    <div
+                      key={`${event.title}-${index}`}
+                      className={cn(
+                        "rounded-lg p-3 border cursor-pointer hover:brightness-110 transition-all",
+                        color
+                      )}
+                      onClick={() => {
+                        if (isClass && onCourseClick) {
+                          onCourseClick(event);
+                        } else if (!isClass && onAssignmentClick) {
+                          onAssignmentClick(event);
+                        }
+                      }}
+                    >
+                      <div className="flex items-center gap-2">
+                        {isClass ? (
+                          <div className="w-2 h-2 rounded-full bg-current"></div>
+                        ) : (
+                          <FileText className="w-4 h-4" />
+                        )}
+                        <span className="font-medium text-sm">{event.title}</span>
+                      </div>
+                      {event.startTime && (
+                        <p className="text-xs opacity-80 mt-1">{event.startTime}</p>
+                      )}
+                    </div>
+                  );
+                })
+              ) : (
+                <p className="text-sm text-muted-foreground italic">No events today</p>
+              )}
+            </div>
+          </div>
+          
+          {/* Upcoming Assignments */}
+          {upcomingEvents.length > 0 && (
+            <div>
+              <h3 className="text-sm font-medium text-muted-foreground mb-2">Upcoming This Week</h3>
+              <div className="space-y-2">
+                {upcomingEvents.map((event, index) => (
+                  <div
+                    key={`${event.title}-upcoming-${index}`}
+                    className="rounded-lg p-3 border bg-slate-900/40 text-slate-200 border-slate-700/50 cursor-pointer hover:brightness-110 transition-all dark:bg-slate-950/50 dark:text-slate-300 dark:border-slate-600/40"
+                    onClick={() => onAssignmentClick && onAssignmentClick(event)}
+                  >
+                    <div className="flex items-center gap-2">
+                      <FileText className="w-4 h-4" />
+                      <span className="font-medium text-sm">{event.title}</span>
+                    </div>
+                    <p className="text-xs opacity-80 mt-1">
+                      Due: {dayjs(event.dueDate).format('MMM D, h:mm A')}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+    );
+  }
 
   return (
     <Card className="h-fit">

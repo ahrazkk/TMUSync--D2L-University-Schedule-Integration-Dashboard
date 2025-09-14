@@ -26,36 +26,53 @@ export function DashboardHeader() {
   };
 
   return (
-    <header className="h-16 border-b border-border bg-card px-6 flex items-center justify-between">
-      <div className="flex items-center gap-4">
-        <h1 className="text-2xl font-bold text-foreground">Good morning, Ahraz!</h1>
+    <header className="h-14 md:h-16 border-b border-border bg-card px-3 md:px-6 flex items-center justify-between">
+      <div className="flex items-center gap-2 md:gap-4">
+        {/* Hide "Good morning" text on mobile, show abbreviated version on small screens */}
+        <h1 className="text-lg md:text-2xl font-bold text-foreground">
+          <span className="hidden sm:inline">Good morning, </span>
+          <span className="sm:hidden">Hi </span>
+          Ahraz!
+        </h1>
       </div>
 
-      <div className="flex items-center gap-4">
-        <div className="relative">
+      <div className="flex items-center gap-2 md:gap-4">
+        {/* Hide search on mobile to save space */}
+        <div className="relative hidden md:block">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
-          <Input placeholder="Search courses, assignments..." className="pl-10 w-80" />
+          <Input placeholder="Search courses, assignments..." className="pl-10 w-60 lg:w-80" />
         </div>
 
+        {/* Show search icon only on mobile */}
+        <Button variant="ghost" size="sm" className="md:hidden">
+          <Search className="w-5 h-5" />
+        </Button>
+
         <Button variant="ghost" size="sm" className="relative">
-          <Bell className="w-5 h-5" />
-          <span className="absolute -top-1 -right-1 w-3 h-3 bg-destructive rounded-full text-xs"></span>
+          <Bell className="w-4 h-4 md:w-5 md:h-5" />
+          <span className="absolute -top-1 -right-1 w-2 h-2 md:w-3 md:h-3 bg-destructive rounded-full text-xs"></span>
         </Button>
 
-        <Button variant="ghost" size="sm" onClick={handleSettings}>
-          <Settings className="w-5 h-5" />
+        {/* Hide settings on mobile to save space */}
+        <Button variant="ghost" size="sm" onClick={handleSettings} className="hidden sm:flex">
+          <Settings className="w-4 h-4 md:w-5 md:h-5" />
         </Button>
 
-        {/* --- NEW SIGN OUT BUTTON --- */}
-        <Button variant="ghost" size="sm" onClick={handleLogout}>
-          <LogOut className="w-5 h-5 mr-2" />
-          Sign Out
+        {/* Simplify sign out button on mobile */}
+        <Button variant="ghost" size="sm" onClick={handleLogout} className="hidden sm:flex">
+          <LogOut className="w-4 h-4 md:w-5 md:h-5 mr-2" />
+          <span className="hidden md:inline">Sign Out</span>
+          <span className="md:hidden">Out</span>
         </Button>
-        {/* --- END OF NEW BUTTON --- */}
 
-        <Avatar className="w-8 h-8">
+        {/* Mobile: Show just logout icon */}
+        <Button variant="ghost" size="sm" onClick={handleLogout} className="sm:hidden">
+          <LogOut className="w-4 h-4" />
+        </Button>
+
+        <Avatar className="w-6 h-6 md:w-8 md:h-8">
           <AvatarImage src="/student-avatar.png" />
-          <AvatarFallback>AH</AvatarFallback>
+          <AvatarFallback className="text-xs md:text-sm">AH</AvatarFallback>
         </Avatar>
       </div>
     </header>
