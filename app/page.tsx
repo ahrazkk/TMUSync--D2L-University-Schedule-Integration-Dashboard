@@ -29,36 +29,47 @@ export default function DashboardPage() {
     viewContext: string;
   } | null>(null);
   
-  // Shared assignment completion state
+  // Shared assignment completion state - initialized with a flag to prevent premature saving
   const [completedAssignmentIds, setCompletedAssignmentIds] = useState<Set<string>>(new Set());
+  const [completionStateLoaded, setCompletionStateLoaded] = useState(false);
 
   // Load completion state from localStorage on mount
   useEffect(() => {
     try {
       const savedCompletions = localStorage.getItem('completedAssignmentIds');
+      console.log('🔄 LOADING completion state from localStorage:', savedCompletions);
       if (savedCompletions) {
         const parsed = JSON.parse(savedCompletions);
-        setCompletedAssignmentIds(new Set(parsed));
+        const completionSet = new Set<string>(parsed);
+        setCompletedAssignmentIds(completionSet);
+        console.log('🔄 RESTORED completion state:', completionSet.size, 'completed assignments');
+      } else {
+        console.log('🔄 NO saved completion state found');
       }
+      setCompletionStateLoaded(true); // Mark as loaded
     } catch (error) {
       console.error('Error loading completion state:', error);
+      setCompletionStateLoaded(true); // Mark as loaded even on error
     }
   }, []);
 
-  // Save completion state to localStorage whenever it changes
+  // Save completion state to localStorage whenever it changes (but only after initial load)
   useEffect(() => {
+    if (!completionStateLoaded) {
+      console.log('🔄 SKIPPING save - completion state not loaded yet');
+      return; // Don't save until we've loaded the initial state
+    }
     try {
-      localStorage.setItem('completedAssignmentIds', JSON.stringify(Array.from(completedAssignmentIds)));
+      const idsArray = Array.from(completedAssignmentIds);
+      localStorage.setItem('completedAssignmentIds', JSON.stringify(idsArray));
+      console.log('🔄 SAVED completion state:', idsArray.length, 'completed assignments');
     } catch (error) {
       console.error('Error saving completion state:', error);
     }
-  }, [completedAssignmentIds]);
+  }, [completedAssignmentIds, completionStateLoaded]);
 
   useEffect(() => {
     async function loadSchedule() {
-      // Deduplicate and clean assignments FIRST (before loading)
-      deduplicateAndCleanAssignments();
-      
       const savedSchedule = localStorage.getItem('userSchedule');
       
       // Use the new assignment persistence system
@@ -70,8 +81,72 @@ export default function DashboardPage() {
       }
       
       if (savedAssignments) {
-        setAssignments(savedAssignments);
-        console.log('📚 Loaded saved assignments:', savedAssignments.length);
+        // Deduplicate and clean assignments (but don't overwrite completion state)
+        const cleanedAssignments = (() => {
+          console.log('Before deduplication - Total assignments:', savedAssignments.length);
+          
+          // First pass: Remove problematic assignments
+          const cleaned = savedAssignments.filter((assignment: any) => {
+            const course = assignment.courseName || assignment.course || assignment.vsbCourseKey || '';
+            const title = assignment.title || '';
+            
+            // Remove CP830 assignments
+            const isOldCP830 = course.toLowerCase().includes('cp830') || course.toLowerCase().includes('cp-830');
+            
+            // Remove problematic Quiz#1 variants (keep only "Available" ones, remove "Due" and "Availability Ends")
+            const isProblematicQuiz = title.includes('Quiz#1') && (
+              title.includes('Availability Ends') || 
+              title.includes('Due')
+            );
+            
+            if (isOldCP830 || isProblematicQuiz) {
+              console.log(`🗑️ REMOVING: "${title}" - Course: "${course}"`);
+              return false;
+            }
+            
+            return true;
+          });
+          
+          // Second pass: Deduplicate by creating unique keys
+          const seenAssignments = new Map<string, any>();
+          const deduplicated = cleaned.filter((assignment: any) => {
+            const course = assignment.courseName || assignment.course || assignment.vsbCourseKey || '';
+            const title = assignment.title || '';
+            const dueDate = assignment.dueDate || '';
+            
+            const normalizedTitle = title
+              .replace(/ - Available$/, '')
+              .replace(/ - Due$/, '')
+              .replace(/ - Availability Ends$/, '')
+              .trim();
+            
+            const uniqueKey = `${normalizedTitle}-${course}-${dueDate}`;
+            
+            if (seenAssignments.has(uniqueKey)) {
+              console.log(`🔄 DUPLICATE FOUND: "${title}" - Course: "${course}" (keeping original)`);
+              return false;
+            } else {
+              const normalizedAssignment = {
+                ...assignment,
+                title: normalizedTitle
+              };
+              seenAssignments.set(uniqueKey, normalizedAssignment);
+              return true;
+            }
+          });
+          
+          const finalAssignments = Array.from(seenAssignments.values());
+          
+          console.log('After deduplication - Total assignments:', finalAssignments.length);
+          console.log('Removed', savedAssignments.length - finalAssignments.length, 'duplicates and problematic assignments');
+          
+          return finalAssignments;
+        })();
+        
+        // Save cleaned assignments
+        saveAssignmentsWithBindings(cleanedAssignments);
+        setAssignments(cleanedAssignments);
+        console.log('✅ Assignment deduplication completed successfully');
       }
       
       if (savedSchedule && savedAssignments) {
@@ -335,9 +410,6 @@ export default function DashboardPage() {
         
         console.log('✅ Assignment deduplication completed successfully');
       }
-
-      // Also clear from old localStorage format
-      localStorage.removeItem('completedAssignments');
       
     } catch (error) {
       console.error('Error deduplicating assignments:', error);
@@ -360,7 +432,6 @@ export default function DashboardPage() {
   // Manual cleanup function for debugging
   const manualCleanup = () => {
     console.log('🔧 Manual cleanup initiated...');
-    deduplicateAndCleanAssignments();
     window.location.reload(); // Reload to see changes
   };
 
@@ -491,6 +562,13 @@ export default function DashboardPage() {
       completedDate: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
       grade: 'Completed'
     }));
+
+  console.log('🎯 COMPLETION DEBUG:', {
+    totalAssignments: upcomingAssignments.length,
+    completedCount: finishedAssignments.length,
+    completedIds: Array.from(completedAssignmentIds),
+    finishedAssignments: finishedAssignments.map(a => a.title)
+  });
 
   // Function to get assignments for a specific course - defined here so it can access upcomingAssignments
   const getAssignmentsForCourse = (courseKey: string): { pending: any[], completed: any[] } => {
