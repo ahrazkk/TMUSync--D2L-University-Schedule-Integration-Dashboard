@@ -40,7 +40,7 @@ To provide a seamless user experience, TMUSync employs a dual-persistence strate
 
 The project follows the standard Next.js App Router structure, separating UI, server-side logic, and configuration.
 
-/
+
 ├── app/
 │   ├── api/                  # Backend API Routes
 │   │   ├── login/route.ts    # Handles authentication & scraping
@@ -60,7 +60,7 @@ The project follows the standard Next.js App Router structure, separating UI, se
 └── tailwind.config.ts        # Tailwind CSS configuration
 
 
----
+
 
 ## ## Technologies Used
 
