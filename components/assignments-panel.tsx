@@ -33,106 +33,64 @@ interface AssignmentsPanelProps {
   upcoming: Assignment[];
   finished: FinishedAssignment[];
   onStatsChange?: (stats: { completed: number; total: number; viewContext: string }) => void;
+  isAssignmentCompleted?: (assignment: Assignment) => boolean;
+  markAssignmentAsComplete?: (assignment: Assignment) => void;
+  markAssignmentAsIncomplete?: (assignment: Assignment) => void;
 }
 
-export function AssignmentsPanel({ upcoming = [], finished = [], onStatsChange }: AssignmentsPanelProps) {
+export function AssignmentsPanel({ 
+  upcoming = [], 
+  finished = [], 
+  onStatsChange,
+  isAssignmentCompleted,
+  markAssignmentAsComplete,
+  markAssignmentAsIncomplete
+}: AssignmentsPanelProps) {
   console.log("AssignmentsPanel received props:", { upcoming: upcoming.length, finished: finished.length });
   
   const [showAllUpcoming, setShowAllUpcoming] = useState(false);
-  const [completedAssignmentIds, setCompletedAssignmentIds] = useState<Set<string>>(new Set());
   const [localCompletedAssignments, setLocalCompletedAssignments] = useState<FinishedAssignment[]>([]);
 
   // Debug function to track state
   const debugCurrentState = () => {
     console.log('=== ASSIGNMENT PANEL DEBUG ===');
-    console.log('Completed IDs:', Array.from(completedAssignmentIds));
     console.log('Local completed assignments:', localCompletedAssignments);
     console.log('Upcoming assignments from props:', upcoming.length);
-    console.log('Filtered upcoming assignments:', remainingAssignments.length);
+    console.log('Parent completion function available:', !!isAssignmentCompleted);
     console.log('================================');
   };
 
-  // Load completion status on component mount
+  // Load local completed assignments for display only
   useEffect(() => {
-    const loadCompletionStatus = async () => {
-      // First load from localStorage for immediate UI update
-      const localData = localStorage.getItem('completedAssignments');
-      if (localData) {
-        try {
-          const parsed = JSON.parse(localData);
-          if (parsed.ids && parsed.ids.length > 0) {
-            setCompletedAssignmentIds(new Set(parsed.ids));
-          }
-          if (parsed.assignments && parsed.assignments.length > 0) {
-            setLocalCompletedAssignments(parsed.assignments);
-          }
-        } catch (error) {
-          console.error('Error parsing localStorage data:', error);
-        }
-      }
-
-      // Then sync with backend
+    const localData = localStorage.getItem('completedAssignments');
+    if (localData) {
       try {
-        const response = await fetch('/api/assignments', {
-          method: 'GET',
-          credentials: 'include',
-        });
-        
-        if (response.ok) {
-          const backendData = await response.json();
-          
-          if (backendData.ids && backendData.ids.length > 0) {
-            setCompletedAssignmentIds(new Set(backendData.ids));
-          }
-          if (backendData.assignments && backendData.assignments.length > 0) {
-            setLocalCompletedAssignments(backendData.assignments);
-          }
-          console.log('Assignment completions loaded:', backendData.ids?.length || 0, 'completed');
+        const parsed = JSON.parse(localData);
+        if (parsed.assignments) {
+          setLocalCompletedAssignments(parsed.assignments);
         }
+        console.log('Local completed assignments loaded for display');
       } catch (error) {
-        console.error('Failed to sync with backend, using localStorage data:', error);
+        console.error('Error loading local completed assignments:', error);
       }
-    };
-
-    loadCompletionStatus();
+    }
   }, []); // Only run once on mount
 
   // Debug effect to track when props change
   useEffect(() => {
-    console.log('AssignmentsPanel: Loaded', upcoming.length, 'upcoming,', finished.length, 'finished, completed count:', completedAssignmentIds.size);
-  }, [upcoming, finished, completedAssignmentIds, localCompletedAssignments]);
+    const completedCount = upcoming.filter(assignment => isAssignmentCompleted?.(assignment)).length;
+    console.log('AssignmentsPanel: Loaded', upcoming.length, 'upcoming,', finished.length, 'finished, completed count:', completedCount);
+  }, [upcoming, finished, localCompletedAssignments, isAssignmentCompleted]);
 
-  // Save completion status to both localStorage and backend whenever it changes
+  // Save local completed assignments to localStorage (for display purposes only)
   useEffect(() => {
-    const dataToSave = {
-      ids: Array.from(completedAssignmentIds),
-      assignments: localCompletedAssignments
-    };
-    
-    // Save to localStorage immediately
-    localStorage.setItem('completedAssignments', JSON.stringify(dataToSave));
-    
-    // Sync with backend
-    const syncWithBackend = async () => {
-      try {
-        await fetch('/api/assignments', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          credentials: 'include',
-          body: JSON.stringify(dataToSave),
-        });
-      } catch (error) {
-        console.error('Failed to sync with backend:', error);
-      }
-    };
-
-    // Only sync if we have data (avoid initial empty sync)
-    if (completedAssignmentIds.size > 0 || localCompletedAssignments.length > 0) {
-      syncWithBackend();
+    if (localCompletedAssignments.length > 0) {
+      const dataToSave = {
+        assignments: localCompletedAssignments
+      };
+      localStorage.setItem('completedAssignments', JSON.stringify(dataToSave));
     }
-  }, [completedAssignmentIds, localCompletedAssignments]);
+  }, [localCompletedAssignments]);
 
   // Create unique ID for assignment
   const getAssignmentId = (assignment: Assignment) => {
@@ -142,11 +100,13 @@ export function AssignmentsPanel({ upcoming = [], finished = [], onStatsChange }
 
   // Handle marking assignment as complete
   const markAsComplete = (assignment: Assignment) => {
-    const assignmentId = getAssignmentId(assignment);
-    console.log('Marking assignment as complete:', assignmentId);
+    console.log('Marking assignment as complete:', assignment.title);
     
-    if (!completedAssignmentIds.has(assignmentId)) {
-      // Create completed assignment
+    if (markAssignmentAsComplete && !isAssignmentCompleted?.(assignment)) {
+      // Use the parent's function to mark as complete
+      markAssignmentAsComplete(assignment);
+      
+      // Create completed assignment for local display
       const completedAssignment: FinishedAssignment = {
         title: assignment.title,
         course: assignment.course,
@@ -154,17 +114,12 @@ export function AssignmentsPanel({ upcoming = [], finished = [], onStatsChange }
         grade: 'Completed'
       };
       
-      // Add to completed
-      const newCompletedIds = new Set([...completedAssignmentIds, assignmentId]);
-      const newCompletedAssignments = [completedAssignment, ...localCompletedAssignments];
+      // Add to local completed assignments for display
+      setLocalCompletedAssignments(prev => [completedAssignment, ...prev]);
       
-      setCompletedAssignmentIds(newCompletedIds);
-      setLocalCompletedAssignments(newCompletedAssignments);
-      
-      console.log('Assignment marked complete:', assignmentId);
-      console.log('New completed count:', newCompletedIds.size);
+      console.log('Assignment marked complete via parent function');
     } else {
-      console.log('Assignment already completed:', assignmentId);
+      console.log('Assignment already completed or no completion function available');
     }
   };
 
@@ -176,15 +131,9 @@ export function AssignmentsPanel({ upcoming = [], finished = [], onStatsChange }
       a.course === completedAssignment.course
     );
     
-    if (originalAssignment) {
-      const assignmentId = getAssignmentId(originalAssignment);
-      
-      // Remove from completed
-      setCompletedAssignmentIds(prev => {
-        const newSet = new Set(prev);
-        newSet.delete(assignmentId);
-        return newSet;
-      });
+    if (originalAssignment && markAssignmentAsIncomplete) {
+      // Use the parent's function to mark as incomplete
+      markAssignmentAsIncomplete(originalAssignment);
       
       // Remove from local completed assignments
       setLocalCompletedAssignments(prev => prev.filter((_, i) => i !== index));
@@ -193,11 +142,11 @@ export function AssignmentsPanel({ upcoming = [], finished = [], onStatsChange }
 
   // Filter out completed assignments from upcoming
   const remainingAssignments = upcoming.filter(assignment => 
-    !completedAssignmentIds.has(getAssignmentId(assignment))
+    !isAssignmentCompleted?.(assignment)
   );
   
-  // Combine original finished assignments with locally completed ones
-  const allCompletedAssignments = [...localCompletedAssignments, ...finished];
+  // Use original finished assignments - completed assignments are now filtered from upcoming
+  const allCompletedAssignments = finished;
   
   // Filter assignments within next 2 weeks
   const twoWeeksFromNow = dayjs().add(2, 'weeks');
@@ -210,8 +159,8 @@ export function AssignmentsPanel({ upcoming = [], finished = [], onStatsChange }
   
   const displayedUpcoming = showAllUpcoming ? remainingAssignments : upcomingWithinTwoWeeks;
   
-  // Calculate completion stats based on current view
-  const totalCompletedCount = allCompletedAssignments.length;
+  // Calculate completion stats based on current view using parent's completion state
+  const totalCompletedCount = upcoming.filter(assignment => isAssignmentCompleted?.(assignment)).length;
   
   // Dynamic stats based on current view (2-week vs all assignments)
   if (showAllUpcoming) {
@@ -222,16 +171,17 @@ export function AssignmentsPanel({ upcoming = [], finished = [], onStatsChange }
     // When showing 2-week view, count only assignments within 2 weeks
     const twoWeeksFromNow = dayjs().add(2, 'weeks');
     
-    // Count remaining assignments within 2 weeks
-    const remainingWithinTwoWeeks = upcomingWithinTwoWeeks.length;
+    // Count assignments within 2 weeks (both completed and remaining)
+    const assignmentsWithinTwoWeeks = upcoming.filter(assignment => 
+      dayjs(assignment.dueDate).isBefore(twoWeeksFromNow)
+    );
     
-    // Count completed assignments that were originally within 2 weeks
-    const completedWithinTwoWeeks = Array.from(completedAssignmentIds).filter(id => {
-      const originalAssignment = upcoming.find(assignment => getAssignmentId(assignment) === id);
-      return originalAssignment && dayjs(originalAssignment.dueDate).isBefore(twoWeeksFromNow);
-    }).length;
+    // Count completed assignments within 2 weeks using parent's completion check
+    const completedWithinTwoWeeks = assignmentsWithinTwoWeeks.filter(assignment => 
+      isAssignmentCompleted?.(assignment)
+    ).length;
     
-    var currentViewTotalAssignments = remainingWithinTwoWeeks + completedWithinTwoWeeks; // Total = remaining + completed
+    var currentViewTotalAssignments = assignmentsWithinTwoWeeks.length; // Total assignments within 2 weeks
     var currentViewCompletedCount = completedWithinTwoWeeks;
   }
 
@@ -352,7 +302,7 @@ export function AssignmentsPanel({ upcoming = [], finished = [], onStatsChange }
                 <Button
                   variant="ghost"
                   size="sm"
-                  onClick={() => markAsComplete(assignment)}
+                  onClick={() => markAssignmentAsComplete?.(assignment)}
                   className="h-6 w-6 p-0 hover:bg-primary/10"
                   title="Mark as complete"
                 >
@@ -413,17 +363,15 @@ export function AssignmentsPanel({ upcoming = [], finished = [], onStatsChange }
                 <Badge variant="outline" className="text-primary border-primary">
                   {assignment.grade}
                 </Badge>
-                {index < localCompletedAssignments.length && (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => moveBackToUpcoming(assignment, index)}
-                    className="h-6 w-6 p-0 hover:bg-secondary/50"
-                    title="Move back to upcoming"
-                  >
-                    <RotateCcw className="w-3 h-3 text-muted-foreground hover:text-foreground" />
-                  </Button>
-                )}
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => moveBackToUpcoming(assignment, index)}
+                  className="h-6 w-6 p-0 hover:bg-secondary/50"
+                  title="Move back to upcoming"
+                >
+                  <RotateCcw className="w-3 h-3 text-muted-foreground hover:text-foreground" />
+                </Button>
               </div>
             </div>
           )) : (

@@ -27,23 +27,38 @@ interface Assignment {
 interface AssignmentDetailCardProps {
   assignment: Assignment;
   onClose?: () => void;
+  isAssignmentCompleted?: (assignment: Assignment) => boolean;
+  markAssignmentAsComplete?: (assignment: Assignment) => void;
+  markAssignmentAsIncomplete?: (assignment: Assignment) => void;
 }
 
-export function AssignmentDetailCard({ assignment, onClose }: AssignmentDetailCardProps) {
+export function AssignmentDetailCard({ 
+  assignment, 
+  onClose,
+  isAssignmentCompleted,
+  markAssignmentAsComplete,
+  markAssignmentAsIncomplete
+}: AssignmentDetailCardProps) {
   const dueDate = dayjs(assignment.dueDate);
   const now = dayjs();
   const timeUntilDue = dueDate.diff(now);
   const isOverdue = timeUntilDue < 0;
   const humanReadableTime = dueDate.fromNow();
   
+  // Check if assignment is completed first
+  const isCompleted = isAssignmentCompleted?.(assignment) || false;
+  
   // Calculate urgency levels
   const hoursUntilDue = Math.abs(dueDate.diff(now, 'hour'));
   const daysUntilDue = Math.abs(dueDate.diff(now, 'day'));
   
-  let urgencyLevel: 'high' | 'medium' | 'low' = 'low';
+  let urgencyLevel: 'high' | 'medium' | 'low' | 'completed' = 'low';
   let urgencyColor = "bg-green-100 text-green-800 border-green-300 dark:bg-green-900 dark:text-green-200 dark:border-green-700";
   
-  if (isOverdue) {
+  if (isCompleted) {
+    urgencyLevel = 'completed';
+    urgencyColor = "bg-green-100 text-green-800 border-green-300 dark:bg-green-900 dark:text-green-200 dark:border-green-700";
+  } else if (isOverdue) {
     urgencyLevel = 'high';
     urgencyColor = "bg-red-100 text-red-800 border-red-300 dark:bg-red-900 dark:text-red-200 dark:border-red-700";
   } else if (hoursUntilDue <= 24) {
@@ -106,7 +121,7 @@ export function AssignmentDetailCard({ assignment, onClose }: AssignmentDetailCa
         
         <div className="flex items-center gap-2 mt-3">
           <Badge variant="outline" className={cn("border text-xs font-medium", urgencyColor)}>
-            {isOverdue ? 'Overdue' : urgencyLevel === 'high' ? 'Due Soon' : urgencyLevel === 'medium' ? 'Due This Week' : 'Upcoming'}
+            {urgencyLevel === 'completed' ? 'Completed' : isOverdue ? 'Overdue' : urgencyLevel === 'high' ? 'Due Soon' : urgencyLevel === 'medium' ? 'Due This Week' : 'Upcoming'}
           </Badge>
           {assignment.source && (
             <Badge variant="secondary" className="text-xs font-medium">
@@ -168,7 +183,7 @@ export function AssignmentDetailCard({ assignment, onClose }: AssignmentDetailCa
                   <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Due Time</p>
                   <p className="text-sm font-semibold">{dueDate.format('h:mm A')}</p>
                   <p className="text-xs text-muted-foreground">
-                    {isOverdue ? `Overdue by ${humanReadableTime.replace('ago', '')}` : `Due ${humanReadableTime}`}
+                    {urgencyLevel === 'completed' ? 'Completed' : isOverdue ? `Overdue by ${humanReadableTime.replace('ago', '')}` : `Due ${humanReadableTime}`}
                   </p>
                 </div>
               </div>
@@ -180,21 +195,48 @@ export function AssignmentDetailCard({ assignment, onClose }: AssignmentDetailCa
         <div className="space-y-4">
           <div className="flex items-center gap-3 p-4 bg-gradient-to-r from-muted/20 to-muted/10 rounded-lg border">
             <div className={cn("w-3 h-3 rounded-full flex-shrink-0", 
+              urgencyLevel === 'completed' ? "bg-green-500" :
               isOverdue ? "bg-red-500" : 
               urgencyLevel === 'high' ? "bg-red-500" : 
               urgencyLevel === 'medium' ? "bg-yellow-500" : "bg-green-500"
             )} />
             <div>
               <p className="text-sm font-medium">
-                {isOverdue ? 'Assignment is overdue' : 
+                {urgencyLevel === 'completed' ? 'Assignment completed' :
+                 isOverdue ? 'Assignment is overdue' : 
                  urgencyLevel === 'high' ? 'Assignment due very soon' : 
                  urgencyLevel === 'medium' ? 'Assignment due this week' : 'Assignment upcoming'}
               </p>
               <p className="text-xs text-muted-foreground">
-                {isOverdue ? `Overdue by ${humanReadableTime.replace('ago', '')}` : `Due ${humanReadableTime}`}
+                {urgencyLevel === 'completed' ? 'Completed' : isOverdue ? `Overdue by ${humanReadableTime.replace('ago', '')}` : `Due ${humanReadableTime}`}
               </p>
             </div>
           </div>
+          
+          {/* Completion Actions */}
+          {markAssignmentAsComplete && markAssignmentAsIncomplete && (
+            <div className="flex gap-2">
+              {isCompleted ? (
+                <Button 
+                  onClick={() => markAssignmentAsIncomplete(assignment)}
+                  variant="outline" 
+                  size="sm"
+                  className="flex-1"
+                >
+                  Mark as Incomplete
+                </Button>
+              ) : (
+                <Button 
+                  onClick={() => markAssignmentAsComplete(assignment)}
+                  variant="default" 
+                  size="sm"
+                  className="flex-1"
+                >
+                  Mark as Complete
+                </Button>
+              )}
+            </div>
+          )}
           
           {assignment.d2lUrl && (
             <Button asChild variant="default" size="lg" className="w-full">

@@ -27,9 +27,11 @@ export function StatsCards({ assignmentStats, courseStats }: StatsCardsProps) {
       value: assignmentStats ? `${assignmentStats.completed}/${assignmentStats.total}` : "0/0",
       icon: CheckCircle,
       change: assignmentStats ? 
-        `${assignmentStats.total - assignmentStats.completed} remaining${assignmentStats.viewContext !== 'all' ? ` (${assignmentStats.viewContext})` : ''}` : 
+        assignmentStats.completed > 0 ? 
+          `${assignmentStats.completed} completed${assignmentStats.viewContext !== 'all' ? ` (${assignmentStats.viewContext})` : ''}` :
+          `${assignmentStats.total} pending${assignmentStats.viewContext !== 'all' ? ` (${assignmentStats.viewContext})` : ''}` :
         "Loading...",
-      positive: assignmentStats ? assignmentStats.completed === assignmentStats.total : false,
+      positive: assignmentStats ? assignmentStats.completed > 0 : false,
     },
     {
       title: "Active Courses",

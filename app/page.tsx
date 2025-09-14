@@ -28,14 +28,36 @@ export default function DashboardPage() {
     total: number;
     viewContext: string;
   } | null>(null);
+  
+  // Shared assignment completion state
+  const [completedAssignmentIds, setCompletedAssignmentIds] = useState<Set<string>>(new Set());
+
+  // Load completion state from localStorage on mount
+  useEffect(() => {
+    try {
+      const savedCompletions = localStorage.getItem('completedAssignmentIds');
+      if (savedCompletions) {
+        const parsed = JSON.parse(savedCompletions);
+        setCompletedAssignmentIds(new Set(parsed));
+      }
+    } catch (error) {
+      console.error('Error loading completion state:', error);
+    }
+  }, []);
+
+  // Save completion state to localStorage whenever it changes
+  useEffect(() => {
+    try {
+      localStorage.setItem('completedAssignmentIds', JSON.stringify(Array.from(completedAssignmentIds)));
+    } catch (error) {
+      console.error('Error saving completion state:', error);
+    }
+  }, [completedAssignmentIds]);
 
   useEffect(() => {
     async function loadSchedule() {
-      // Clear test assignments first
-      clearTestAssignments();
-      
-      // Clear old CP830 assignments that are duplicates
-      clearOldCP830Assignments();
+      // Deduplicate and clean assignments FIRST (before loading)
+      deduplicateAndCleanAssignments();
       
       const savedSchedule = localStorage.getItem('userSchedule');
       
@@ -49,6 +71,7 @@ export default function DashboardPage() {
       
       if (savedAssignments) {
         setAssignments(savedAssignments);
+        console.log('📚 Loaded saved assignments:', savedAssignments.length);
       }
       
       if (savedSchedule && savedAssignments) {
@@ -90,16 +113,40 @@ export default function DashboardPage() {
             const classes = allData.filter((item: any) => item.type === 'class');
             const serverAssignments = allData.filter((item: any) => item.type === 'assignment');
             
-            // Store schedule normally
+            console.log('🔄 FRESH LOGIN: Server provided', serverAssignments.length, 'assignments');
+            
+            // Clean server assignments BEFORE syncing
+            const cleanedServerAssignments = serverAssignments.filter((assignment: any) => {
+              const course = assignment.courseName || assignment.course || assignment.vsbCourseKey || '';
+              const title = assignment.title || '';
+              
+              // Remove problematic Quiz#1 variants (keep only clean ones)
+              const isProblematicQuiz = title.includes('Quiz#1') && (
+                title.includes('Availability Ends') || 
+                title.includes('Due')
+              );
+              
+              if (isProblematicQuiz) {
+                console.log(`🗑️ REMOVING from server data: "${title}" - Course: "${course}"`);
+                return false;
+              }
+              
+              return true;
+            });
+            
+            console.log('🔄 AFTER CLEANING: Server has', cleanedServerAssignments.length, 'clean assignments');
+            
+            // Store schedule normally (without assignments to prevent double-counting)
             localStorage.setItem('userSchedule', JSON.stringify(classes));
             
             // Use the new assignment persistence system with sync
-            const syncedAssignments = syncAssignmentsAfterLogin(serverAssignments);
+            const syncedAssignments = syncAssignmentsAfterLogin(cleanedServerAssignments);
             
-            setSchedule(classes);
+            setSchedule(classes); // Only store classes, not assignments
             setAssignments(syncedAssignments);
             
             console.log('📚 Fetched fresh data and synced with local course bindings');
+            console.log('📊 Final counts - Classes:', classes.length, 'Assignments:', syncedAssignments.length);
           } catch (error) {
             // --- Robust Refresh Prevention (network error) ---
             const now = Date.now();
@@ -213,66 +260,142 @@ export default function DashboardPage() {
     saveAssignmentsWithBindings(testAssignments);
   };
 
-  // Function to clear old CP830 assignments that are duplicates
-  const clearOldCP830Assignments = () => {
+  // Function to deduplicate and clean assignments
+  const deduplicateAndCleanAssignments = () => {
     try {
+      // Clear from main assignment data
       const savedAssignments = loadAssignmentsWithBindings();
       if (savedAssignments) {
-        console.log('Before cleanup - Total assignments:', savedAssignments.length);
+        console.log('Before deduplication - Total assignments:', savedAssignments.length);
         
-        // Filter out assignments with old CP830 course name
-        const filteredAssignments = savedAssignments.filter((assignment: any) => {
+        // First pass: Remove problematic assignments
+        const cleanedAssignments = savedAssignments.filter((assignment: any) => {
           const course = assignment.courseName || assignment.course || assignment.vsbCourseKey || '';
+          const title = assignment.title || '';
+          
+          // Remove CP830 assignments
           const isOldCP830 = course.toLowerCase().includes('cp830') || course.toLowerCase().includes('cp-830');
-          return !isOldCP830;
+          
+          // Remove problematic Quiz#1 variants (keep only "Available" ones, remove "Due" and "Availability Ends")
+          const isProblematicQuiz = title.includes('Quiz#1') && (
+            title.includes('Availability Ends') || 
+            title.includes('Due')
+          );
+          
+          if (isOldCP830 || isProblematicQuiz) {
+            console.log(`🗑️ REMOVING: "${title}" - Course: "${course}"`);
+            return false;
+          }
+          
+          return true;
         });
         
-        console.log('After cleanup - Total assignments:', filteredAssignments.length);
-        console.log('Removed', savedAssignments.length - filteredAssignments.length, 'old CP830 assignments');
+        // Second pass: Deduplicate by creating unique keys
+        const seenAssignments = new Map<string, any>();
+        const deduplicatedAssignments = cleanedAssignments.filter((assignment: any) => {
+          const course = assignment.courseName || assignment.course || assignment.vsbCourseKey || '';
+          const title = assignment.title || '';
+          const dueDate = assignment.dueDate || '';
+          
+          // Create a unique key for deduplication
+          // Normalize the title by removing status suffixes
+          const normalizedTitle = title
+            .replace(/ - Available$/, '')
+            .replace(/ - Due$/, '')
+            .replace(/ - Availability Ends$/, '')
+            .trim();
+          
+          const uniqueKey = `${normalizedTitle}-${course}-${dueDate}`;
+          
+          if (seenAssignments.has(uniqueKey)) {
+            console.log(`� DUPLICATE FOUND: "${title}" - Course: "${course}" (keeping original)`);
+            return false; // Skip duplicate
+          } else {
+            // Store the normalized assignment
+            const normalizedAssignment = {
+              ...assignment,
+              title: normalizedTitle
+            };
+            seenAssignments.set(uniqueKey, normalizedAssignment);
+            return true;
+          }
+        });
+        
+        // Update the assignments with normalized titles
+        const finalAssignments = Array.from(seenAssignments.values());
+        
+        console.log('After deduplication - Total assignments:', finalAssignments.length);
+        console.log('Removed', savedAssignments.length - finalAssignments.length, 'duplicates and problematic assignments');
         
         // Use the new persistence system
-        saveAssignmentsWithBindings(filteredAssignments);
+        saveAssignmentsWithBindings(finalAssignments);
         
         // Update state to reflect changes
-        setAssignments(filteredAssignments);
+        setAssignments(finalAssignments);
         
-        console.log('✅ Old CP830 assignments removed successfully');
+        console.log('✅ Assignment deduplication completed successfully');
       }
+
+      // Also clear from old localStorage format
+      localStorage.removeItem('completedAssignments');
+      
     } catch (error) {
-      console.error('Error clearing old CP830 assignments:', error);
+      console.error('Error deduplicating assignments:', error);
     }
   };
 
-  // Clear test assignments and use real ones
+  // Clear old CP830 assignments - only remove specific problematic assignments
   const clearTestAssignments = () => {
-    clearAssignmentData();
-    setAssignments([]);
-    console.log('🧹 Cleared test assignments');
+    // Only clear if there are no real assignments, don't clear everything
+    const savedAssignments = loadAssignmentsWithBindings();
+    if (!savedAssignments || savedAssignments.length === 0) {
+      clearAssignmentData();
+      setAssignments([]);
+      console.log('🧹 Cleared test assignments (no real assignments found)');
+    } else {
+      console.log('🧹 Skipped clearing assignments - real assignments found:', savedAssignments.length);
+    }
   };
+
+  // Manual cleanup function for debugging
+  const manualCleanup = () => {
+    console.log('🔧 Manual cleanup initiated...');
+    deduplicateAndCleanAssignments();
+    window.location.reload(); // Reload to see changes
+  };
+
+  // Expose cleanup function for debugging
+  useEffect(() => {
+    (window as any).manualCleanup = manualCleanup;
+    (window as any).clearTestAssignments = clearTestAssignments;
+  }, []);
 
   const closeAssignmentDetails = () => {
     setSelectedAssignment(null);
   };
 
-  // Function to get assignments for a specific course
-  const getAssignmentsForCourse = (courseKey: string): any[] => {
-    if (!assignments) return [];
-    
-    // Normalize course key for comparison
-    const normalizeCourseCode = (code: string): string => {
-      return code.replace(/[-\s]/g, '').toUpperCase();
-    };
-    
-    const normalizedCourseKey = normalizeCourseCode(courseKey);
-    
-    return assignments.filter((assignment: any) => {
-      // Try multiple course fields - prioritize vsbCourseKey which has the correct VSB format
-      const assignmentCourse = assignment.vsbCourseKey || assignment.courseName || assignment.course || '';
-      const normalizedAssignmentCourse = normalizeCourseCode(assignmentCourse);
-      
-      return normalizedAssignmentCourse === normalizedCourseKey ||
-             normalizedAssignmentCourse.includes(normalizedCourseKey) ||
-             normalizedCourseKey.includes(normalizedAssignmentCourse);
+  // Helper functions for assignment completion management
+  const getAssignmentId = (assignment: any) => {
+    return `${assignment.title}-${assignment.course || assignment.courseName}-${assignment.dueDate}`;
+  };
+
+  const isAssignmentCompleted = (assignment: any) => {
+    return completedAssignmentIds.has(getAssignmentId(assignment));
+  };
+
+  const markAssignmentAsComplete = (assignment: any) => {
+    const assignmentId = getAssignmentId(assignment);
+    if (!completedAssignmentIds.has(assignmentId)) {
+      setCompletedAssignmentIds(prev => new Set([...prev, assignmentId]));
+    }
+  };
+
+  const markAssignmentAsIncomplete = (assignment: any) => {
+    const assignmentId = getAssignmentId(assignment);
+    setCompletedAssignmentIds(prev => {
+      const newSet = new Set(prev);
+      newSet.delete(assignmentId);
+      return newSet;
     });
   };
 
@@ -300,18 +423,132 @@ export default function DashboardPage() {
     )
   }
   
-  // --- THIS IS THE FIX ---
-  // Ensure the schedule state feeds BOTH the calendar and the assignments panel.
-  // Combine schedule and assignments data for the calendar
+  // --- FIXED: Deduplicate ALL assignment sources ---
   const scheduleEvents = schedule || [];
   const assignmentEvents = assignments ? assignments.map((assignment: any) => ({
     ...assignment,
     type: 'assignment'
   })) : [];
   
-  const allEvents = [...scheduleEvents, ...assignmentEvents];
-  const upcomingAssignments = allEvents.filter(event => event.type === 'assignment');
-  const finishedAssignments: any[] = [];
+  console.log('🔍 DEBUG: Creating assignment events from assignments state:', assignments?.length || 0);
+  console.log('🔍 DEBUG: Assignment events created:', assignmentEvents.length);
+  console.log('🔍 DEBUG: Schedule events:', scheduleEvents.length);
+  
+  // Get assignments from schedule data (these might be duplicates)
+  const scheduleAssignments = scheduleEvents.filter(event => event.type === 'assignment');
+  console.log('🔍 DEBUG: Assignments from schedule:', scheduleAssignments.length);
+  
+  // Combine ALL assignments and deduplicate them
+  const allAssignments = [...assignmentEvents, ...scheduleAssignments];
+  console.log('🔍 DEBUG: Total assignments before final dedup:', allAssignments.length);
+  
+  // Apply the same deduplication logic here
+  const deduplicatedAssignments = (() => {
+    const seenAssignments = new Map<string, any>();
+    return allAssignments.filter((assignment: any) => {
+      const course = assignment.courseName || assignment.course || assignment.vsbCourseKey || '';
+      const title = assignment.title || '';
+      const dueDate = assignment.dueDate || '';
+      
+      // Normalize the title by removing status suffixes
+      const normalizedTitle = title
+        .replace(/ - Available$/, '')
+        .replace(/ - Due$/, '')
+        .replace(/ - Availability Ends$/, '')
+        .trim();
+      
+      const uniqueKey = `${normalizedTitle}-${course}-${dueDate}`;
+      
+      if (seenAssignments.has(uniqueKey)) {
+        console.log(`🚫 RUNTIME DUPLICATE: "${title}" - Course: "${course}"`);
+        return false; // Skip duplicate
+      } else {
+        seenAssignments.set(uniqueKey, {
+          ...assignment,
+          title: normalizedTitle
+        });
+        return true;
+      }
+    });
+  })();
+  
+  console.log('🔍 DEBUG: Assignments after final dedup:', deduplicatedAssignments.length);
+  
+  // Use only non-assignment schedule events + deduplicated assignments
+  const nonAssignmentScheduleEvents = scheduleEvents.filter(event => event.type !== 'assignment');
+  const allEvents = [...nonAssignmentScheduleEvents, ...deduplicatedAssignments];
+  const upcomingAssignments = deduplicatedAssignments;
+  
+  console.log('🔍 DEBUG: Upcoming assignments for panel:', upcomingAssignments.length);
+  console.log('🔍 DEBUG: First few upcoming assignments:', upcomingAssignments.slice(0, 3));
+  
+  // Generate finished assignments from completed state
+  const finishedAssignments = upcomingAssignments
+    .filter(assignment => isAssignmentCompleted(assignment))
+    .map(assignment => ({
+      title: assignment.title,
+      course: assignment.course || assignment.courseName,
+      completedDate: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+      grade: 'Completed'
+    }));
+
+  // Function to get assignments for a specific course - defined here so it can access upcomingAssignments
+  const getAssignmentsForCourse = (courseKey: string): { pending: any[], completed: any[] } => {
+    // Use the actual upcoming assignments from allEvents, not the empty assignments state
+    const availableAssignments = upcomingAssignments;
+    
+    if (!availableAssignments || availableAssignments.length === 0) {
+      console.log(`🔍 No assignments available for course: ${courseKey}`);
+      return { pending: [], completed: [] };
+    }
+    
+    console.log(`🔍 Looking for assignments for course: "${courseKey}"`);
+    console.log(`📋 Total assignments available:`, availableAssignments.length);
+    
+    // Normalize course key for comparison
+    const normalizeCourseCode = (code: string): string => {
+      return code.replace(/[-\s]/g, '').toUpperCase();
+    };
+    
+    const normalizedCourseKey = normalizeCourseCode(courseKey);
+    console.log(`🎯 Normalized course key: "${normalizedCourseKey}"`);
+    
+    const matchedAssignments = availableAssignments.filter((assignment: any) => {
+      // Try multiple course fields - prioritize vsbCourseKey which has the correct VSB format
+      const vsbKey = assignment.vsbCourseKey || '';
+      const courseName = assignment.courseName || '';
+      const course = assignment.course || '';
+      
+      const normalizedVsbKey = normalizeCourseCode(vsbKey);
+      const normalizedCourseName = normalizeCourseCode(courseName);
+      const normalizedCourse = normalizeCourseCode(course);
+      
+      // Check multiple matching strategies
+      const vsbMatch = normalizedVsbKey === normalizedCourseKey;
+      const courseNameMatch = normalizedCourseName === normalizedCourseKey;
+      const courseMatch = normalizedCourse === normalizedCourseKey;
+      
+      // Also try partial matches (contains)
+      const vsbContains = normalizedVsbKey.includes(normalizedCourseKey) || normalizedCourseKey.includes(normalizedVsbKey);
+      const courseNameContains = normalizedCourseName.includes(normalizedCourseKey) || normalizedCourseKey.includes(normalizedCourseName);
+      const courseContains = normalizedCourse.includes(normalizedCourseKey) || normalizedCourseKey.includes(normalizedCourse);
+      
+      const isMatch = vsbMatch || courseNameMatch || courseMatch || vsbContains || courseNameContains || courseContains;
+      
+      if (isMatch) {
+        console.log(`✅ MATCH FOUND for "${assignment.title}" with course "${courseKey}"`);
+      }
+      
+      return isMatch;
+    });
+    
+    // Separate into completed and pending assignments
+    const pending = matchedAssignments.filter(assignment => !isAssignmentCompleted(assignment));
+    const completed = matchedAssignments.filter(assignment => isAssignmentCompleted(assignment));
+    
+    console.log(`🎯 Found ${pending.length} pending and ${completed.length} completed assignments for course "${courseKey}"`);
+    return { pending, completed };
+  };
 
   // Calculate course statistics
   const courseStats = allEvents.length > 0 ? (() => {
@@ -325,7 +562,11 @@ export default function DashboardPage() {
       // This is the key from the first file (enrollment data) that groups all sections
       const courseKey = event.courseName; // This is course.key from the scraper
       
-      if (courseKey && courseKey.trim() !== '') {
+      // Only count items that look like actual course codes (e.g., "CPS-710", "COE-758")
+      // Filter out descriptive titles like "Intro to Computer Vision"
+      const courseCodePattern = /^[A-Z]{2,4}-?\d{2,4}[A-Z]?$/;
+      
+      if (courseKey && courseKey.trim() !== '' && courseCodePattern.test(courseKey)) {
         uniqueCourseKeys.add(courseKey);
         
         // Use the course key as display name (since it's already clean like "CPS109")
@@ -337,6 +578,8 @@ export default function DashboardPage() {
     const courseKeys = Array.from(uniqueCourseKeys);
     const courseNames = courseKeys.map(key => courseKeyToDisplayName.get(key) || key);
     
+    console.log("Active courses being counted:", courseNames);
+
     return {
       activeCourses: courseNames.length,
       courseNames: courseNames
@@ -363,6 +606,9 @@ export default function DashboardPage() {
                   assignments={getAssignmentsForCourse(selectedCourse.key)}
                   onClose={() => setSelectedCourse(null)}
                   onAssignmentClick={handleAssignmentClick}
+                  isAssignmentCompleted={isAssignmentCompleted}
+                  markAssignmentAsComplete={markAssignmentAsComplete}
+                  markAssignmentAsIncomplete={markAssignmentAsIncomplete}
                 />
               )}
               {/* Assignment Detail Card - shown above calendar when an assignment is selected */}
@@ -370,6 +616,9 @@ export default function DashboardPage() {
                 <AssignmentDetailCard 
                   assignment={selectedAssignment}
                   onClose={() => setSelectedAssignment(null)}
+                  isAssignmentCompleted={isAssignmentCompleted}
+                  markAssignmentAsComplete={markAssignmentAsComplete}
+                  markAssignmentAsIncomplete={markAssignmentAsIncomplete}
                 />
               )}
               {/* The calendar receives all events to display them visually */}
@@ -385,6 +634,9 @@ export default function DashboardPage() {
                 upcoming={upcomingAssignments}
                 finished={finishedAssignments}
                 onStatsChange={setAssignmentStats}
+                isAssignmentCompleted={isAssignmentCompleted}
+                markAssignmentAsComplete={markAssignmentAsComplete}
+                markAssignmentAsIncomplete={markAssignmentAsIncomplete}
               />
               <QuickActions />
             </div>
