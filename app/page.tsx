@@ -19,6 +19,7 @@ import {
 } from "@/lib/assignment-persistence";
 
 export default function DashboardPage() {
+  const [mounted, setMounted] = useState(false);
   const [schedule, setSchedule] = useState<any[] | null>(null);
   const [assignments, setAssignments] = useState<any[] | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -34,6 +35,11 @@ export default function DashboardPage() {
   // Shared assignment completion state - initialized with a flag to prevent premature saving
   const [completedAssignmentIds, setCompletedAssignmentIds] = useState<Set<string>>(new Set());
   const [completionStateLoaded, setCompletionStateLoaded] = useState(false);
+
+  // Hydration safety check
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   // Load completion state from localStorage on mount
   useEffect(() => {
@@ -472,6 +478,34 @@ export default function DashboardPage() {
     });
   };
 
+  if (!mounted) {
+    // Return minimal loading state to prevent hydration mismatch
+    return (
+      <div className="flex min-h-screen bg-background" suppressHydrationWarning>
+        <div className="hidden lg:block">
+          <Sidebar />
+        </div>
+        <main className="flex-1 flex flex-col">
+          <DashboardHeader />
+          <div className="flex-1 p-3 md:p-6 space-y-4 md:space-y-6 pb-20 lg:pb-6">
+            <StatsCards />
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-6">
+              <div className="lg:col-span-2 space-y-2">
+                <Skeleton className="h-8 md:h-12 w-1/2 md:w-1/3" />
+                <Skeleton className="h-[300px] md:h-[500px] w-full" />
+              </div>
+              <div className="space-y-4 md:space-y-6">
+                <Skeleton className="h-[200px] md:h-[300px] w-full" />
+                <Skeleton className="h-[150px] md:h-[200px] w-full" />
+              </div>
+            </div>
+          </div>
+          <MobileBottomNav onSearchClick={() => {}} />
+        </main>
+      </div>
+    );
+  }
+
   if (isLoading) {
     return (
       <div className="flex min-h-screen bg-background">
@@ -673,7 +707,7 @@ export default function DashboardPage() {
   })() : undefined;
 
   return (
-    <div className="flex min-h-screen bg-background">
+    <div className="flex min-h-screen bg-background" suppressHydrationWarning>
       {/* Hide sidebar on mobile devices (screens smaller than lg) */}
       <div className="hidden lg:block">
         <Sidebar />

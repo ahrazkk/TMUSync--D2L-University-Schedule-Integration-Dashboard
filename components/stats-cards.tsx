@@ -14,6 +14,14 @@ interface StatsCardsProps {
 }
 
 export function StatsCards({ assignmentStats, courseStats }: StatsCardsProps) {
+  // Define pastel colors for each card that work in both light and dark mode
+  const pastelColors = [
+    "hover:bg-pink-50 hover:border-pink-200 dark:hover:bg-pink-950/20 dark:hover:border-pink-800", // Soft pink
+    "hover:bg-blue-50 hover:border-blue-200 dark:hover:bg-blue-950/20 dark:hover:border-blue-800", // Soft blue  
+    "hover:bg-green-50 hover:border-green-200 dark:hover:bg-green-950/20 dark:hover:border-green-800", // Soft green
+    "hover:bg-purple-50 hover:border-purple-200 dark:hover:bg-purple-950/20 dark:hover:border-purple-800", // Soft purple
+  ]
+
   const stats = [
     {
       title: "Weekly Hours",
@@ -56,8 +64,11 @@ export function StatsCards({ assignmentStats, courseStats }: StatsCardsProps) {
   ]
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-      {stats.map((stat) => (
-        <Card key={stat.title} className="hover:shadow-md transition-shadow">
+      {stats.map((stat, index) => (
+        <Card 
+          key={stat.title} 
+          className={`hover:shadow-md transition-all duration-300 ${pastelColors[index % pastelColors.length]}`}
+        >
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>

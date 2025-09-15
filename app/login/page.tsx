@@ -6,6 +6,9 @@ import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import * as z from "zod"
 import { Button } from "@/components/ui/button"
+import { BubbleBackground } from "@/components/ui/bubble-background"
+import { ThemeToggle } from "@/components/theme-toggle"
+import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp"
 import {
   Card,
   CardContent,
@@ -15,7 +18,7 @@ import {
 } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { GraduationCap, Loader2 } from "lucide-react"
+import { Loader2 } from "lucide-react"
 
 const loginSchema = z.object({
   username: z.string().min(1, "Username is required"),
@@ -29,11 +32,13 @@ export default function LoginPage() {
   const router = useRouter()
   const [error, setError] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(false)
+  const [twoFactorCode, setTwoFactorCode] = useState("")
 
   const {
     register,
     handleSubmit,
     formState: { errors },
+    setValue,
   } = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
   })
@@ -42,11 +47,14 @@ export default function LoginPage() {
     setIsLoading(true)
     setError(null)
 
+    // Set the 2FA code in the form data
+    const formData = { ...data, twoFactorCode }
+
     try {
       const response = await fetch("/api/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
+        body: JSON.stringify(formData),
       })
 
       const result = await response.json()
@@ -72,67 +80,87 @@ export default function LoginPage() {
       }
 
     } catch (err: any) {
-      setError(err.message)
-    } finally {
+      setError("Failed to connect to the server.")
       setIsLoading(false)
     }
   }
 
   return (
-    <div className="flex items-center justify-center min-h-screen bg-background">
-<Card className="mx-auto max-w-md">        <CardHeader>
-          <div className="flex justify-center mb-4">
-            <div className="w-16 h-16 bg-primary rounded-lg flex items-center justify-center">
-              <GraduationCap className="w-8 h-8 text-primary-foreground" />
-            </div>
-          </div>
-          <CardTitle className="text-2xl text-center">UniTracker Login</CardTitle>
-          <CardDescription className="text-center">
-            Enter your university credentials to sync your schedule
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={handleSubmit(onSubmit)} className="grid gap-4">
-            <div className="grid gap-2">
-              <Label htmlFor="username">Username</Label>
-              <Input
-                id="username"
-                type="text"
-                placeholder="jsmith"
-                {...register("username")}
-                disabled={isLoading}
-              />
-              {errors.username && <p className="text-xs text-red-500">{errors.username.message}</p>}
-            </div>
-            <div className="grid gap-2">
-              <Label htmlFor="password">Password</Label>
-              <Input 
-                id="password" 
-                type="password" 
-                {...register("password")}
-                disabled={isLoading}
-              />
-              {errors.password && <p className="text-xs text-red-500">{errors.password.message}</p>}
-            </div>
-            <div className="grid gap-2">
-              <Label htmlFor="twoFactorCode">2FA Code</Label>
-              <Input
-                id="twoFactorCode"
-                type="text"
-                placeholder="Duo Mobile Code"
-                {...register("twoFactorCode")}
-                disabled={isLoading}
-              />
-              {errors.twoFactorCode && <p className="text-xs text-red-500">{errors.twoFactorCode.message}</p>}
-            </div>
-            {error && <p className="text-sm text-red-500 text-center">{error}</p>}
-            <Button type="submit" className="w-full" disabled={isLoading}>
-              {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              {isLoading ? "Syncing Schedule..." : "Login & Sync"}
-            </Button>
-          </form>
-        </CardContent>
-      </Card>
-    </div>
+    <>
+      <BubbleBackground />
+      {/* Theme toggle button in top right corner */}
+      <div className="absolute top-4 right-4 z-10">
+        <div className="bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm rounded-lg p-1 border border-gray-200/50 dark:border-gray-700/50 shadow-lg">
+          <ThemeToggle />
+        </div>
+      </div>
+      <div className="flex items-center justify-center min-h-screen">
+        <Card className="w-full max-w-sm bg-white/30 dark:bg-gray-900/30 backdrop-blur-sm border-gray-200/50 dark:border-gray-700/50">
+          <CardHeader>
+            <CardTitle className="text-3xl font-bold text-center text-gray-900 dark:text-white">TMUSync</CardTitle>
+            <CardDescription className="text-center text-gray-700 dark:text-gray-300">
+              Enter your TMU credentials to sync your schedule.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="grid gap-4">
+            <form onSubmit={handleSubmit(onSubmit)} className="grid gap-4">
+              <div className="grid gap-2">
+                <Label htmlFor="username" className="text-gray-900 dark:text-gray-100">Username</Label>
+                <Input
+                  id="username"
+                  type="text"
+                  placeholder="my.tmu.ca username"
+                  {...register("username")}
+                  disabled={isLoading}
+                  className="bg-white/70 dark:bg-gray-800/70 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-gray-100 placeholder:text-gray-500 dark:placeholder:text-gray-400"
+                />
+                {errors.username && <p className="text-xs text-red-500 dark:text-red-400">{errors.username.message}</p>}
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="password" className="text-gray-900 dark:text-gray-100">Password</Label>
+                <Input
+                  id="password"
+                  type="password"
+                  placeholder="********"
+                  {...register("password")}
+                  disabled={isLoading}
+                  className="bg-white/70 dark:bg-gray-800/70 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-gray-100 placeholder:text-gray-500 dark:placeholder:text-gray-400"
+                />
+                {errors.password && <p className="text-xs text-red-500 dark:text-red-400">{errors.password.message}</p>}
+              </div>
+              <div className="grid gap-2 justify-center">
+                <Label htmlFor="otp-input" className="text-gray-900 dark:text-gray-100">Two-Factor Authentication</Label>
+                <InputOTP 
+                  maxLength={6} 
+                  id="otp-input"
+                  value={twoFactorCode}
+                  onChange={(value) => {
+                    setTwoFactorCode(value)
+                    setValue("twoFactorCode", value)
+                  }}
+                  disabled={isLoading}
+                  className="[&>div]:bg-white/70 dark:[&>div]:bg-gray-800/70 [&>div]:border-gray-300 dark:[&>div]:border-gray-600"
+                >
+                  <InputOTPGroup>
+                    <InputOTPSlot index={0} className="bg-white/70 dark:bg-gray-800/70 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-gray-100" />
+                    <InputOTPSlot index={1} className="bg-white/70 dark:bg-gray-800/70 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-gray-100" />
+                    <InputOTPSlot index={2} className="bg-white/70 dark:bg-gray-800/70 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-gray-100" />
+                    <InputOTPSlot index={3} className="bg-white/70 dark:bg-gray-800/70 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-gray-100" />
+                    <InputOTPSlot index={4} className="bg-white/70 dark:bg-gray-800/70 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-gray-100" />
+                    <InputOTPSlot index={5} className="bg-white/70 dark:bg-gray-800/70 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-gray-100" />
+                  </InputOTPGroup>
+                </InputOTP>
+                {errors.twoFactorCode && <p className="text-xs text-red-500 dark:text-red-400">{errors.twoFactorCode.message}</p>}
+              </div>
+              {error && <p className="text-sm text-red-500 dark:text-red-400 text-center">{error}</p>}
+              <Button type="submit" className="w-full bg-primary hover:bg-primary/90 text-primary-foreground" disabled={isLoading}>
+                {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                {isLoading ? "Syncing Schedule..." : "Login & Sync"}
+              </Button>
+            </form>
+          </CardContent>
+        </Card>
+      </div>
+    </>
   )
 }

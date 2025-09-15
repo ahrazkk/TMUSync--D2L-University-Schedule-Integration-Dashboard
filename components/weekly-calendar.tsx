@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { ChevronLeft, ChevronRight, Plus, FileText } from "lucide-react"
+import { ChevronLeft, ChevronRight, Plus, FileText, Calendar, List } from "lucide-react"
 import { cn } from "@/lib/utils"
 import dayjs from 'dayjs'
 import customParseFormat from 'dayjs/plugin/customParseFormat'
@@ -143,19 +143,30 @@ interface WeeklyCalendarProps {
 
 export function WeeklyCalendar({ events = [], onCourseClick, onAssignmentClick }: WeeklyCalendarProps) {
   const [currentDate, setCurrentDate] = useState(dayjs());
-  const [isMobileView, setIsMobileView] = useState(false);
+  const [isMobileScreen, setIsMobileScreen] = useState(false);
+  const [isListView, setIsListView] = useState(false);
+  const [hasInitializedView, setHasInitializedView] = useState(false);
   const today = dayjs().day();
   
   // Detect mobile screen size
   useEffect(() => {
     const checkMobile = () => {
-      setIsMobileView(window.innerWidth < 1024); // lg breakpoint
+      const isMobile = window.innerWidth < 768; // md breakpoint
+      setIsMobileScreen(isMobile);
+      
+      // Auto-enable list view on mobile screens only on initial load
+      if (isMobile && !hasInitializedView) {
+        setIsListView(true);
+        setHasInitializedView(true);
+      } else if (!hasInitializedView) {
+        setHasInitializedView(true);
+      }
     };
     
     checkMobile();
     window.addEventListener('resize', checkMobile);
     return () => window.removeEventListener('resize', checkMobile);
-  }, []);
+  }, [hasInitializedView]);
 
   const handlePreviousWeek = () => {
     setCurrentDate(currentDate.subtract(1, 'week'));
@@ -176,8 +187,13 @@ export function WeeklyCalendar({ events = [], onCourseClick, onAssignmentClick }
   // Calculate event layouts for overlapping events
   const eventLayouts = getEventLayout(events, currentDate);
 
-  // Mobile view: Simple list view for today and upcoming events
-  if (isMobileView) {
+  // Toggle between list and calendar view
+  const toggleView = () => {
+    setIsListView(!isListView);
+  };
+
+  // List view: Simple list view for today and upcoming events
+  if (isListView) {
     const todayDate = dayjs();
     const todayEvents = events.filter(event => {
       if (event.type === 'class' && event.day) {
@@ -202,7 +218,24 @@ export function WeeklyCalendar({ events = [], onCourseClick, onAssignmentClick }
       <Card className="w-full">
         <CardHeader className="space-y-3 pb-4">
           <div className="flex items-center justify-between">
-            <CardTitle className="text-lg font-semibold">Schedule</CardTitle>
+            <CardTitle className={cn(
+              "font-semibold",
+              isMobileScreen ? "text-base" : "text-lg"
+            )}>
+              Schedule
+            </CardTitle>
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={toggleView}
+              className={cn(
+                "gap-2",
+                isMobileScreen && "px-3"
+              )}
+            >
+              <Calendar className="w-4 h-4" />
+              {isMobileScreen ? "Cal" : "Calendar"}
+            </Button>
           </div>
           <div className="flex items-center justify-between">
             <Button variant="ghost" size="sm" onClick={handlePreviousWeek}>
@@ -298,11 +331,28 @@ export function WeeklyCalendar({ events = [], onCourseClick, onAssignmentClick }
     <Card className="h-fit">
       <CardHeader className="pb-4">
         <div className="flex items-center justify-between">
-          <CardTitle className="text-xl font-semibold">Your Enrolled Schedule</CardTitle>
+          <CardTitle className={cn(
+            "font-semibold",
+            isMobileScreen ? "text-base" : "text-xl"
+          )}>
+            Your Enrolled Schedule
+          </CardTitle>
           <div className="flex items-center gap-2">
-            <Button variant="outline" size="sm">
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={toggleView}
+              className={cn(
+                "gap-2",
+                isMobileScreen && "px-3"
+              )}
+            >
+              <List className="w-4 h-4" />
+              {isMobileScreen ? "List" : "List View"}
+            </Button>
+            <Button variant="outline" size="sm" className={cn(isMobileScreen && "px-3")}>
               <Plus className="w-4 h-4 mr-2" />
-              Add Event
+              {isMobileScreen ? "Add" : "Add Event"}
             </Button>
           </div>
         </div>
@@ -322,7 +372,7 @@ export function WeeklyCalendar({ events = [], onCourseClick, onAssignmentClick }
         </div>
       </CardHeader>
       <CardContent>
-        <div className="grid grid-cols-[6rem_repeat(7,1fr)] grid-rows-[auto_auto_repeat(32,20px)]">
+        <div className="grid grid-cols-[4rem_repeat(7,1fr)] grid-rows-[auto_auto_repeat(32,20px)]">
           <div className="sticky top-0 z-20 bg-card"></div>
           {days.map((day, index) => (
             <div 
@@ -336,7 +386,7 @@ export function WeeklyCalendar({ events = [], onCourseClick, onAssignmentClick }
             </div>
           ))}
           
-          <div className="row-start-2 col-start-1 text-xs font-medium text-muted-foreground p-2 text-right pr-4 z-10 sticky top-12 bg-card border-b border-r">All-Day</div>
+          <div className="row-start-2 col-start-1 text-xs font-medium text-muted-foreground p-1 text-right pr-2 z-10 sticky top-12 bg-card border-b border-r">All-Day</div>
           {days.map((day, index) => (
              <div 
                key={`${day}-allday`} 
@@ -350,7 +400,7 @@ export function WeeklyCalendar({ events = [], onCourseClick, onAssignmentClick }
 
           {timeSlotsWithExtraRows.map((time, index) => (
             <div key={time} className="row-start-auto col-start-1 col-end-10 grid grid-cols-subgrid -mt-px" style={{ gridRowStart: index * 2 + 3 }}>
-              <div className="text-xs text-muted-foreground p-2 text-right pr-4 z-10 sticky top-12 bg-card">{time}</div>
+              <div className="text-xs text-muted-foreground p-1 text-right pr-2 z-10 sticky top-12 bg-card">{time}</div>
               {days.map((day, dayIndex) => (
                 <div 
                   key={`${day}-cell-${time}`} 

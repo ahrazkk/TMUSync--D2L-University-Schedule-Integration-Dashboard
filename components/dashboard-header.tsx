@@ -4,6 +4,7 @@ import { Bell, Search, Settings, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { ThemeToggle } from "@/components/theme-toggle";
 import { useRouter } from "next/navigation";
 
 export function DashboardHeader() {
@@ -52,6 +53,9 @@ export function DashboardHeader() {
           <Bell className="w-4 h-4 md:w-5 md:h-5" />
           <span className="absolute -top-1 -right-1 w-2 h-2 md:w-3 md:h-3 bg-destructive rounded-full text-xs"></span>
         </Button>
+
+        {/* Theme toggle button */}
+        <ThemeToggle />
 
         {/* Hide settings on mobile to save space */}
         <Button variant="ghost" size="sm" onClick={handleSettings} className="hidden sm:flex">
