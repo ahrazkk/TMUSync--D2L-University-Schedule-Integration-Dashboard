@@ -31,9 +31,9 @@ export function DashboardHeader() {
       <div className="flex items-center gap-2 md:gap-4">
         {/* Hide "Good morning" text on mobile, show abbreviated version on small screens */}
         <h1 className="text-lg md:text-2xl font-bold text-foreground">
-          <span className="hidden sm:inline">Good morning, </span>
+          <span className="hidden sm:inline">Good morning </span>
           <span className="sm:hidden">Hi </span>
-          Ahraz!
+          !
         </h1>
       </div>
 

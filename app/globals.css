@@ -107,3 +107,8 @@
     @apply bg-background text-foreground;
   }
 }
+
+/* White outlines for cards in dark mode */
+.dark [data-slot="card"] {
+  border-color: white;
+}
