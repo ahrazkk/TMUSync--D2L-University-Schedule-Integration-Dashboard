@@ -75,16 +75,23 @@ export async function POST(request: NextRequest) {
       sisPage.click('a#RU_FL_DRIVED_SF_RU_VSB_LINK')
     ]);
     await vsbPage.waitForLoadState('networkidle');
+    
+    // Add small delay to help with server load/rate limiting
+    await new Promise(resolve => setTimeout(resolve, 2000));
 
+    console.log('[API] Waiting for enrollment state API response...');
     const enrollmentApiUrl = /vsb\.torontomu\.ca\/api\/getEnrollmentState/;
     const [enrollmentResponse] = await Promise.all([
-      vsbPage.waitForResponse(enrollmentApiUrl),
+      vsbPage.waitForResponse(enrollmentApiUrl, { timeout: 60000 }), // Increased to 60 seconds
       vsbPage.goto('https://vsb.torontomu.ca/criteria.jsp')
     ]);
+    console.log('[API] Enrollment state API responded successfully');
     const enrollmentData = await enrollmentResponse.json();
 
+    console.log('[API] Waiting for class data API response...');
     const classDataApiUrl = /vsb\.torontomu\.ca\/api\/class-data/;
-    const [classDataResponse] = await Promise.all([vsbPage.waitForResponse(classDataApiUrl)]);
+    const [classDataResponse] = await Promise.all([vsbPage.waitForResponse(classDataApiUrl, { timeout: 60000 })]); // Increased to 60 seconds
+    console.log('[API] Class data API responded successfully');
     const xmlText = await classDataResponse.text();
     const classData = await parseStringPromise(xmlText, { explicitArray: false, mergeAttrs: true });
     

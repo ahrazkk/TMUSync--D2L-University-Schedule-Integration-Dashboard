@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
@@ -32,7 +32,18 @@ export default function LoginPage() {
   const router = useRouter()
   const [error, setError] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(false)
+  const [isSkipping, setIsSkipping] = useState(false)
   const [twoFactorCode, setTwoFactorCode] = useState("")
+  const [hasCachedData, setHasCachedData] = useState(false)
+  const [mounted, setMounted] = useState(false)
+
+  // Check for cached data on component mount
+  useEffect(() => {
+    setMounted(true)
+    const cachedSchedule = localStorage.getItem('userSchedule')
+    const cachedAssignments = localStorage.getItem('tmu-sync-assignments')
+    setHasCachedData(!!(cachedSchedule || cachedAssignments))
+  }, [])
 
   const {
     register,
@@ -82,6 +93,45 @@ export default function LoginPage() {
     } catch (err: any) {
       setError("Failed to connect to the server.")
       setIsLoading(false)
+    }
+  }
+
+  const handleSkipLogin = async () => {
+    setIsSkipping(true)
+    setError(null)
+
+    try {
+      // Check if we have cached schedule data
+      const cachedSchedule = localStorage.getItem('userSchedule')
+      const cachedAssignments = localStorage.getItem('tmu-sync-assignments')
+      
+      if (!cachedSchedule && !cachedAssignments) {
+        setError("No cached data found. Please login first to sync your schedule.")
+        setIsSkipping(false)
+        return
+      }
+
+      // Create a mock session for offline mode
+      const response = await fetch("/api/quick-reauth", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ useCache: true }),
+      })
+
+      const result = await response.json()
+
+      if (!response.ok || !result.success) {
+        throw new Error(result.message || "Failed to enter offline mode.")
+      }
+
+      console.log('Skip login successful:', result)
+      
+      // Redirect to dashboard in offline mode
+      window.location.href = '/'
+
+    } catch (err: any) {
+      setError("Failed to use cached data. Try logging in normally.")
+      setIsSkipping(false)
     }
   }
 
@@ -153,11 +203,42 @@ export default function LoginPage() {
                 {errors.twoFactorCode && <p className="text-xs text-red-500 dark:text-red-400">{errors.twoFactorCode.message}</p>}
               </div>
               {error && <p className="text-sm text-red-500 dark:text-red-400 text-center">{error}</p>}
-              <Button type="submit" className="w-full bg-primary hover:bg-primary/90 text-primary-foreground" disabled={isLoading}>
+              <Button type="submit" className="w-full bg-primary hover:bg-primary/90 text-primary-foreground" disabled={isLoading || isSkipping}>
                 {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 {isLoading ? "Syncing Schedule..." : "Login & Sync"}
               </Button>
             </form>
+            
+            {/* Skip Login Button - Only show if cached data exists and component is mounted */}
+            {mounted && hasCachedData && (
+              <>
+                <div className="relative">
+                  <div className="absolute inset-0 flex items-center">
+                    <span className="w-full border-t border-gray-300 dark:border-gray-600" />
+                  </div>
+                  <div className="relative flex justify-center text-xs uppercase">
+                    <span className="bg-white/30 dark:bg-gray-900/30 px-2 text-gray-500 dark:text-gray-400">
+                      Or
+                    </span>
+                  </div>
+                </div>
+                
+                <Button 
+                  type="button" 
+                  variant="outline" 
+                  className="w-full bg-white/10 dark:bg-gray-800/10 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-white/20 dark:hover:bg-gray-800/20" 
+                  onClick={handleSkipLogin}
+                  disabled={isLoading || isSkipping}
+                >
+                  {isSkipping && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                  {isSkipping ? "Loading Cache..." : "Skip Login (Use Cache)"}
+                </Button>
+                
+                <p className="text-xs text-center text-gray-500 dark:text-gray-400">
+                  Uses previously saved schedule data
+                </p>
+              </>
+            )}
           </CardContent>
         </Card>
       </div>

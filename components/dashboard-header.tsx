@@ -33,7 +33,7 @@ export function DashboardHeader() {
         <h1 className="text-lg md:text-2xl font-bold text-foreground">
           <span className="hidden sm:inline">Good morning </span>
           <span className="sm:hidden">Hi </span>
-          !
+          Ahraz!
         </h1>
       </div>
 
