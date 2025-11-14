@@ -33,6 +33,7 @@ export default function DashboardPage() {
     viewContext: string;
   } | null>(null);
   const [showMobileSearch, setShowMobileSearch] = useState(false);
+  const [isDemo, setIsDemo] = useState(false);
   
   // Shared assignment completion state - initialized with a flag to prevent premature saving
   const [completedAssignmentIds, setCompletedAssignmentIds] = useState<Set<string>>(new Set());
@@ -41,6 +42,9 @@ export default function DashboardPage() {
   // Hydration safety check
   useEffect(() => {
     setMounted(true);
+    // Check if we're in demo mode
+    const demoMode = localStorage.getItem('isDemo') === 'true';
+    setIsDemo(demoMode);
   }, []);
 
   // Client-side auth check (replaces middleware)
@@ -746,6 +750,17 @@ export default function DashboardPage() {
       </div>
       <main className="flex-1 flex flex-col">
         <DashboardHeader />
+        {/* Demo Mode Notice Banner */}
+        {isDemo && mounted && (
+          <div className="bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-950/30 dark:to-purple-950/30 border-b border-blue-200 dark:border-blue-800 px-4 py-3">
+            <div className="flex items-center justify-center gap-2 text-sm">
+              <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-blue-100 dark:bg-blue-900 text-blue-600 dark:text-blue-400 font-semibold text-xs">ℹ</span>
+              <p className="text-blue-800 dark:text-blue-200 font-medium">
+                <span className="font-bold">Demo Mode:</span> This dashboard displays sample data for demonstration purposes. Interactive features like assignment completion are for display only.
+              </p>
+            </div>
+          </div>
+        )}
         {/* Add bottom padding on mobile to account for bottom navigation */}
         <div className="flex-1 p-3 md:p-6 space-y-4 md:space-y-6 pb-20 lg:pb-6">
           <div data-testid="stats-cards">
