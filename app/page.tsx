@@ -178,8 +178,22 @@ export default function DashboardPage() {
       if (savedSchedule && savedAssignments) {
         setIsLoading(false);
         console.log('📚 Loaded cached data with preserved course bindings');
+      } else if (savedSchedule || savedAssignments) {
+        // Partial data - just use what we have (common in demo mode)
+        setIsLoading(false);
+        console.log('📚 Loaded partial cached data');
       } else {
-        // No saved data, fetch fresh from backend
+        // No saved data at all - check if demo mode or try to fetch from backend
+        const isDemo = localStorage.getItem('isDemo');
+        
+        if (isDemo === 'true') {
+          // Demo mode but no data? Something went wrong, stay on page but show empty state
+          setIsLoading(false);
+          console.log('⚠️ Demo mode active but no cached data found');
+          return;
+        }
+        
+        // Not demo mode, fetch fresh from backend
         async function fetchData() {
           try {
             const scheduleResponse = await fetch('/api/schedule', { credentials: 'include' });
