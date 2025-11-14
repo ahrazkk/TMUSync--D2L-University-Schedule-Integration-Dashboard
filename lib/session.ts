@@ -47,22 +47,11 @@ function generateRandomBase64(size = 32): string {
 // Read password from either SECRET_COOKIE_PASSWORD (preferred) or SESSION_SECRET (legacy/.env.local)
 let cookiePassword = process.env.SECRET_COOKIE_PASSWORD ?? process.env.SESSION_SECRET;
 
-// iron-session requires a 32+ character secret. Fail fast in production.
+// iron-session requires a 32+ character secret. Generate one automatically if not provided.
 if (!cookiePassword || cookiePassword.length < 32) {
-  if (process.env.NODE_ENV === 'production') {
-    throw new Error(
-      'Missing or invalid secret for iron-session. Set SECRET_COOKIE_PASSWORD (or SESSION_SECRET) env var with 32+ characters.'
-    );
-  } else {
-    // For developer convenience, generate a secure random fallback so iron-session receives a valid password.
-    // This avoids the "Missing password" runtime error during local development when env files aren't loaded.
-    // Note: this fallback is ephemeral (in-memory) and not suitable for production.
-    // eslint-disable-next-line no-console
-    console.warn(
-      'Warning: SECRET_COOKIE_PASSWORD (or SESSION_SECRET) is not set or is too short. Generating an ephemeral 32-byte secret for development only.'
-    );
-    cookiePassword = generateRandomBase64(32);
-  }
+  // Generate a secure random fallback for demo purposes
+  // Note: this is ephemeral (in-memory) and regenerates on restart, but that's fine for demo mode
+  cookiePassword = generateRandomBase64(32);
 }
 
 export const sessionOptions: SessionOptions = {
@@ -79,4 +68,5 @@ export interface SessionData {
   id?: string; // <-- ADD THIS LINE
   icsUrl?: string; // User's D2L calendar URL
   username?: string; // VSB username for stable user identification
+  isDemo?: boolean; // Flag for demo mode users
 }

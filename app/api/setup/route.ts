@@ -14,7 +14,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ 
       icsUrl: session.icsUrl || null,
       username: session.username || null,
-      hasDefaultUrl: !!process.env.D2L_ICS_URL
+      hasDefaultUrl: false // No default URL needed for demo mode
     });
   } catch (error) {
     console.error('Setup GET API error:', error);

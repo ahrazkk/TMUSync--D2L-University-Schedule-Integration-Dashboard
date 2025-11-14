@@ -85,7 +85,9 @@ export default function DashboardPage() {
       
       if (savedSchedule) {
         const parsed = JSON.parse(savedSchedule);
-        setSchedule(parsed);
+        // Handle both formats: array or { classes: [...] }
+        const scheduleArray = Array.isArray(parsed) ? parsed : (parsed.classes || []);
+        setSchedule(scheduleArray);
       }
       
       if (savedAssignments) {

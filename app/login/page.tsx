@@ -27,6 +27,7 @@ const loginSchema = z.object({
 })
 
 const icsLoginSchema = z.object({
+  name: z.string().min(1, "Name is required"),
   scheduleIcsUrl: z.string().optional(),
   assignmentsIcsUrl: z.string().optional(),
 }).refine(
@@ -160,10 +161,19 @@ export default function LoginPage() {
 
     try {
       console.log('[ICS Login] Submitting ICS URLs:', data);
+      
+      // Save the user's name to localStorage
+      if (data.name) {
+        localStorage.setItem('userName', data.name);
+      }
+      
       const response = await fetch("/api/login-ics", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
+        body: JSON.stringify({
+          scheduleIcsUrl: data.scheduleIcsUrl,
+          assignmentsIcsUrl: data.assignmentsIcsUrl
+        }),
       })
 
       console.log('[ICS Login] Response status:', response.status);
@@ -191,6 +201,52 @@ export default function LoginPage() {
     }
   }
 
+  const onDemoLogin = async () => {
+    setIsLoading(true);
+    setError(null);
+
+    try {
+      console.log('[Demo Mode] Initiating demo login...');
+      
+      // Call the demo login API route
+      const response = await fetch("/api/login-demo", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+      });
+
+      console.log('[Demo Mode] Response status:', response.status);
+      const result = await response.json();
+      console.log('[Demo Mode] Response data:', result);
+
+      if (!response.ok || !result.success) {
+        throw new Error(result.message || "Failed to start demo mode");
+      }
+      
+      // Set demo user name and flag
+      localStorage.setItem('userName', 'Demo User');
+      localStorage.setItem('isDemo', 'true');
+      
+      // Save demo schedule data from API response
+      if (result.schedule) {
+        localStorage.setItem('userSchedule', JSON.stringify(result.schedule));
+      }
+      
+      // Save demo assignments data
+      if (result.assignments) {
+        localStorage.setItem('tmu-sync-assignments', JSON.stringify(result.assignments));
+      }
+      
+      console.log('[Demo Mode] Demo data saved, redirecting to dashboard...');
+      
+      // Redirect to dashboard
+      window.location.href = '/';
+    } catch (err: any) {
+      console.error('[Demo Mode] Error:', err);
+      setError(err.message || 'Failed to load demo');
+      setIsLoading(false);
+    }
+  }
+
   return (
     <>
       <BubbleBackground />
@@ -209,7 +265,8 @@ export default function LoginPage() {
             </CardDescription>
           </CardHeader>
           <CardContent className="grid gap-4">
-            <form onSubmit={handleSubmit(onSubmit)} className="grid gap-4">
+            {/* Credential Login - Disabled */}
+            <form onSubmit={handleSubmit(onSubmit)} className="grid gap-4 opacity-60">
               <div className="grid gap-2">
                 <Label htmlFor="username" className="text-gray-900 dark:text-gray-100">Username</Label>
                 <Input
@@ -217,10 +274,9 @@ export default function LoginPage() {
                   type="text"
                   placeholder="my.tmu.ca username"
                   {...register("username")}
-                  disabled={isLoading}
+                  disabled={true}
                   className="bg-white/70 dark:bg-gray-800/70 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-gray-100 placeholder:text-gray-500 dark:placeholder:text-gray-400"
                 />
-                {errors.username && <p className="text-xs text-red-500 dark:text-red-400">{errors.username.message}</p>}
               </div>
               <div className="grid gap-2">
                 <Label htmlFor="password" className="text-gray-900 dark:text-gray-100">Password</Label>
@@ -229,10 +285,9 @@ export default function LoginPage() {
                   type="password"
                   placeholder="********"
                   {...register("password")}
-                  disabled={isLoading}
+                  disabled={true}
                   className="bg-white/70 dark:bg-gray-800/70 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-gray-100 placeholder:text-gray-500 dark:placeholder:text-gray-400"
                 />
-                {errors.password && <p className="text-xs text-red-500 dark:text-red-400">{errors.password.message}</p>}
               </div>
               <div className="grid gap-2 justify-center">
                 <Label htmlFor="otp-input" className="text-gray-900 dark:text-gray-100">Two-Factor Authentication</Label>
@@ -244,7 +299,7 @@ export default function LoginPage() {
                     setTwoFactorCode(value)
                     setValue("twoFactorCode", value)
                   }}
-                  disabled={isLoading}
+                  disabled={true}
                   className="[&>div]:bg-white/70 dark:[&>div]:bg-gray-800/70 [&>div]:border-gray-300 dark:[&>div]:border-gray-600"
                 >
                   <InputOTPGroup>
@@ -256,14 +311,12 @@ export default function LoginPage() {
                     <InputOTPSlot index={5} className="bg-white/70 dark:bg-gray-800/70 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-gray-100" />
                   </InputOTPGroup>
                 </InputOTP>
-                {errors.twoFactorCode && <p className="text-xs text-red-500 dark:text-red-400">{errors.twoFactorCode.message}</p>}
               </div>
-              {error && <p className="text-sm text-red-500 dark:text-red-400 text-center">{error}</p>}
-              <Button type="submit" className="w-full bg-primary hover:bg-primary/90 text-primary-foreground" disabled={isLoading || isSkipping || isICSLoading}>
-                {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                {isLoading ? "Syncing Schedule..." : "Login & Sync"}
+              <Button type="submit" className="w-full bg-primary hover:bg-primary/90 text-primary-foreground" disabled={true}>
+                Login & Sync
               </Button>
             </form>
+            <p className="text-xs text-center text-yellow-700 dark:text-yellow-400">⚠️ Credential login temporarily unavailable. Please use ICS or Demo mode below.</p>
             
             {/* ICS Login Section */}
             <div className="relative">
@@ -289,6 +342,20 @@ export default function LoginPage() {
               </Button>
             ) : (
               <form onSubmit={handleSubmitICS(onICSSubmit)} className="grid gap-4">
+                <div className="grid gap-2">
+                  <Label htmlFor="name" className="text-gray-900 dark:text-gray-100">
+                    Your Name
+                  </Label>
+                  <Input
+                    id="name"
+                    type="text"
+                    placeholder="Enter your name"
+                    {...registerICS("name")}
+                    disabled={isICSLoading}
+                    className="bg-white/70 dark:bg-gray-800/70 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-gray-100 placeholder:text-gray-500 dark:placeholder:text-gray-400"
+                  />
+                  {icsErrors.name && <p className="text-xs text-red-500 dark:text-red-400">{icsErrors.name.message}</p>}
+                </div>
                 <div className="grid gap-2">
                   <Label htmlFor="scheduleIcsUrl" className="text-gray-900 dark:text-gray-100">
                     Schedule ICS URL <span className="text-xs text-gray-500 dark:text-gray-400">(Optional)</span>
@@ -343,8 +410,8 @@ export default function LoginPage() {
               </form>
             )}
             
-            {/* Skip Login Button - Only show if cached data exists and component is mounted */}
-            {mounted && hasCachedData && !showICSLogin && (
+            {/* Demo Button */}
+            {!showICSLogin && (
               <>
                 <div className="relative">
                   <div className="absolute inset-0 flex items-center">
@@ -360,18 +427,46 @@ export default function LoginPage() {
                 <Button 
                   type="button" 
                   variant="outline" 
-                  className="w-full bg-white/10 dark:bg-gray-800/10 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-white/20 dark:hover:bg-gray-800/20" 
-                  onClick={handleSkipLogin}
+                  className="w-full bg-purple-500/10 dark:bg-purple-700/10 border-purple-300 dark:border-purple-700 text-purple-700 dark:text-purple-300 hover:bg-purple-500/20 dark:hover:bg-purple-700/20" 
+                  onClick={onDemoLogin}
                   disabled={isLoading || isSkipping || isICSLoading}
                 >
-                  {isSkipping && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                  {isSkipping ? "Loading Cache..." : "Skip Login (Use Cache)"}
+                  ✨ Try Demo Mode
                 </Button>
                 
                 <p className="text-xs text-center text-gray-500 dark:text-gray-400">
-                  Uses previously saved schedule data
+                  View a sample schedule without ICS URLs
                 </p>
               </>
+            )}
+            
+            {/* Skip Login Button - Only show if cached data exists and component is mounted */}
+            {mounted && hasCachedData && !showICSLogin && (
+              <div className="opacity-50 pointer-events-none">
+                <div className="relative">
+                  <div className="absolute inset-0 flex items-center">
+                    <span className="w-full border-t border-gray-300 dark:border-gray-600" />
+                  </div>
+                  <div className="relative flex justify-center text-xs uppercase">
+                    <span className="bg-white/30 dark:bg-gray-900/30 px-2 text-gray-500 dark:text-gray-400">
+                      Or
+                    </span>
+                  </div>
+                </div>
+                
+                <Button 
+                  type="button" 
+                  variant="outline" 
+                  className="w-full bg-white/10 dark:bg-gray-800/10 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300" 
+                  disabled={true}
+                >
+                  📦 Use Cached Data (Disabled)
+                </Button>
+                
+                <p className="text-xs text-center text-yellow-700 dark:text-yellow-400">
+                  ⚠️ Cache login temporarily unavailable
+                </p>
+              </div>
             )}
           </CardContent>
         </Card>

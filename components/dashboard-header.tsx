@@ -6,9 +6,17 @@ import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { useRouter } from "next/navigation";
+import { useState, useEffect } from "react";
 
 export function DashboardHeader() {
   const router = useRouter();
+  const [userName, setUserName] = useState<string>("");
+
+  useEffect(() => {
+    // Get user name from localStorage
+    const storedName = localStorage.getItem('userName');
+    setUserName(storedName || 'Guest');
+  }, []);
 
   // This function will handle the logout process
   const handleLogout = async () => {
@@ -33,7 +41,7 @@ export function DashboardHeader() {
         <h1 className="text-lg md:text-2xl font-bold text-foreground">
           <span className="hidden sm:inline">Good morning </span>
           <span className="sm:hidden">Hi </span>
-          Ahraz!
+          {userName}!
         </h1>
       </div>
 

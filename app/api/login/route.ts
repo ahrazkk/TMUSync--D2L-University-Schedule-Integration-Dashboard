@@ -202,8 +202,8 @@ export async function POST(request: NextRequest) {
     // --- Fetch Assignments from ICS ---
     let assignments: any[] = [];
     try {
-      // Use user's ICS URL if available, otherwise fall back to env variable
-      const icsUrl = session.icsUrl || process.env.D2L_ICS_URL as string;
+      // Use user's ICS URL if available
+      const icsUrl = session.icsUrl;
       
       if (!icsUrl) {
         console.log('[API] No ICS URL configured, skipping assignment fetch');
@@ -455,8 +455,8 @@ export async function POST(request: NextRequest) {
   session.username = username; // Store VSB username for stable user identification
   await session.save();
 
-  // 4. Check if user needs ICS setup
-  const needsSetup = !session.icsUrl && !process.env.D2L_ICS_URL;
+  // 4. Check if user needs ICS setup (always false for demo mode)
+  const needsSetup = false;
 
   // Return a response with the session cookie set
 return NextResponse.json({ 

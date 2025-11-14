@@ -207,6 +207,14 @@ export function WeeklyCalendar({ events = [], onCourseClick, onAssignmentClick }
     return true;
   });
 
+  console.log('📅 CALENDAR DEBUG:', {
+    totalEvents: events.length,
+    visibleEvents: visibleEvents.length,
+    classEvents: visibleEvents.filter(e => e.type === 'class').length,
+    sampleClass: visibleEvents.find(e => e.type === 'class'),
+    currentWeek: formattedDateRange
+  });
+
   // Calculate event layouts for overlapping events using only visible events
   const eventLayouts = getEventLayout(visibleEvents, currentDate);
 
@@ -440,6 +448,19 @@ export function WeeklyCalendar({ events = [], onCourseClick, onAssignmentClick }
           {visibleEvents.map((event, index) => {
             // Parse event date for assignments
             const eventDate = event.dueDate ? dayjs(event.dueDate) : null;
+
+            // DEBUG: Log class event details
+            if (event.type === 'class' && index === 0) {
+              console.log('🎓 RENDERING CLASS EVENT:', {
+                hasDay: !!event.day,
+                hasStartTime: !!event.startTime,
+                hasDuration: !!event.duration,
+                day: event.day,
+                startTime: event.startTime,
+                duration: event.duration,
+                fullEvent: event
+              });
+            }
 
             // A. Handle CLASS events
             if (event.type === 'class' && event.day && event.startTime && event.duration) {
