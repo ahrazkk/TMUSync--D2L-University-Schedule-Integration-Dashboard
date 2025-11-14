@@ -88,180 +88,144 @@ export const DEMO_SCHEDULE_DATA = {
       location: "CPS714 - Advanced Algorithm Design"
     },
     {
-      id: "demo-assignment-2",
-      title: "Graph Algorithm Implementation",
+      id: "Lab9 - Due-CPS714",
+      title: "Lab9 - Due",
       course: "CPS714",
-      courseName: "Advanced Algorithm Design",
-      dueDate: new Date(Date.now() + 12 * 24 * 60 * 60 * 1000).toISOString(),
-      priority: "medium" as const,
-      description: "Implement Dijkstra's shortest path and A* pathfinding algorithms from scratch. Create interactive visualization showing algorithm execution step-by-step. Compare performance on various graph structures (sparse, dense, weighted). Bonus: Implement Bellman-Ford for negative edge weights.",
-      status: "Not Started" as const,
-      source: 'ICS' as const,
-      location: "CPS714 - Advanced Algorithm Design"
-    },
-    {
-      id: "demo-assignment-3-cps714",
-      title: "Dynamic Programming Challenge Set",
-      course: "CPS714",
-      courseName: "Advanced Algorithm Design",
-      dueDate: new Date(Date.now() + 20 * 24 * 60 * 60 * 1000).toISOString(),
-      priority: "low" as const,
-      description: "Solve 10 advanced dynamic programming problems including knapsack variants, longest common subsequence, matrix chain multiplication, and edit distance. Provide detailed explanations of recurrence relations and memoization strategies.",
-      status: "Not Started" as const,
-      source: 'ICS' as const,
-      location: "CPS714 - Advanced Algorithm Design"
+      dueDate: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000).toISOString(),
+      priority: "high" as const,
+      status: "Not Started" as const
     },
     
-    // CPS510 - Database Systems
+    // CPS843 - Introduction to Computer Vision
     {
-      id: "demo-assignment-3",
-      title: "Database Design Project",
-      course: "CPS510",
-      courseName: "Database Systems",
-      dueDate: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString(),
-      priority: "high" as const,
-      description: "Design and implement a complete relational database for an e-commerce platform. Deliverables: ER diagrams with cardinality constraints, normalized schema (3NF minimum), SQL DDL scripts, 20+ sample queries including complex joins, subqueries, and aggregations. Document indexing strategy and include transaction examples.",
-      status: "In Progress" as const,
-      source: 'ICS' as const,
-      location: "CPS510 - Database Systems"
-    },
-    {
-      id: "demo-assignment-4",
-      title: "SQL Query Optimization",
-      course: "CPS510",
-      courseName: "Database Systems",
-      dueDate: new Date(Date.now() + 1 * 24 * 60 * 60 * 1000).toISOString(),
-      priority: "high" as const,
-      description: "Optimize 5 provided slow queries running on a 10GB dataset. Use EXPLAIN ANALYZE to identify bottlenecks. Apply appropriate indexes, rewrite queries, and analyze execution plans. Document before/after performance metrics with response time improvements.",
-      status: "Completed" as const,
-      source: 'ICS' as const,
-      location: "CPS510 - Database Systems"
-    },
-    {
-      id: "demo-assignment-5",
-      title: "NoSQL vs SQL Comparison",
-      course: "CPS510",
-      courseName: "Database Systems",
-      dueDate: new Date(Date.now() + 18 * 24 * 60 * 60 * 1000).toISOString(),
-      priority: "low" as const,
-      description: "Research paper (2500-3000 words) comparing MongoDB and PostgreSQL for different use cases. Include performance benchmarks for read/write operations, scalability analysis, and data modeling differences. Provide code samples demonstrating CRUD operations in both systems.",
-      status: "Not Started" as const,
-      source: 'ICS' as const,
-      location: "CPS510 - Database Systems"
-    },
-    
-    // CPS843 - Introduction to Machine Learning
-    {
-      id: "demo-assignment-10",
-      title: "Classification Model Training",
+      id: "HW-1-CPS843",
+      title: "HW-1",
       course: "CPS843",
-      courseName: "Introduction to Machine Learning",
+      courseName: "Introduction to Computer Vision",
       dueDate: new Date(Date.now() + 8 * 24 * 60 * 60 * 1000).toISOString(),
       priority: "high" as const,
       description: "Train and evaluate multiple classification models using scikit-learn on the Iris dataset. Compare decision trees, random forests, SVM, and k-NN. Implement cross-validation, hyperparameter tuning using GridSearchCV, and generate confusion matrices. Report precision, recall, and F1 scores for each model.",
       status: "In Progress" as const,
       source: 'ICS' as const,
-      location: "CPS843 - Introduction to Machine Learning"
+      location: "CPS843 - Introduction to Computer Vision"
     },
     {
-      id: "demo-assignment-11",
-      title: "Deep Learning Project",
+      id: "Quiz#1-CPS843",
+      title: "Quiz#1 - Availability Ends",
       course: "CPS843",
-      courseName: "Introduction to Machine Learning",
-      dueDate: new Date(Date.now() + 25 * 24 * 60 * 60 * 1000).toISOString(),
-      priority: "medium" as const,
-      description: "Build a convolutional neural network (CNN) for image classification using TensorFlow or PyTorch. Train on CIFAR-10 dataset. Implement data augmentation, dropout regularization, and learning rate scheduling. Achieve minimum 75% test accuracy. Document architecture choices and training process.",
+      courseName: "Introduction to Computer Vision",
+      dueDate: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString(),
+      priority: "high" as const,
       status: "Not Started" as const,
       source: 'ICS' as const,
-      location: "CPS843 - Introduction to Machine Learning"
-    },
-    {
-      id: "demo-assignment-11-cps843",
-      title: "Neural Network From Scratch",
-      course: "CPS843",
-      courseName: "Introduction to Machine Learning",
-      dueDate: new Date(Date.now() + 16 * 24 * 60 * 60 * 1000).toISOString(),
-      priority: "medium" as const,
-      description: "Implement a basic neural network from scratch using only NumPy (no ML frameworks). Include forward propagation, backpropagation, and gradient descent. Train on XOR problem and visualize decision boundaries. Explain mathematical derivations of gradients.",
-      status: "Not Started" as const,
-      source: 'ICS' as const,
-      location: "CPS843 - Introduction to Machine Learning"
+      location: "CPS843 - Introduction to Computer Vision"
     },
     
-    // POL507 - Canadian Politics
+    // POL507 - Power, Change and Technology
     {
-      id: "demo-assignment-12",
-      title: "Policy Analysis Paper",
+      id: "Reflection#1-POL507",
+      title: "Reflection#1",
       course: "POL507",
-      courseName: "Canadian Politics",
+      courseName: "Power, Change and Technology",
+      dueDate: new Date(Date.now() + 6 * 24 * 60 * 60 * 1000).toISOString(),
+      priority: "medium" as const,
+      description: "Critical reflection on weekly readings and class discussions. 500-750 words analyzing key themes and their contemporary relevance.",
+      status: "In Progress" as const,
+      source: 'ICS' as const,
+      location: "POL507 - Power, Change and Technology"
+    },
+    {
+      id: "Reflection#2-POL507",
+      title: "Reflection#2",
+      course: "POL507",
+      courseName: "Power, Change and Technology",
       dueDate: new Date(Date.now() + 15 * 24 * 60 * 60 * 1000).toISOString(),
       priority: "medium" as const,
-      description: "Critical analysis of a recent Canadian federal policy (2020-2024) and its impact on provincial governance and intergovernmental relations. 2500-3000 words. Must include analysis of stakeholder positions, constitutional considerations, and policy outcomes. Minimum 12 academic sources.",
       status: "Not Started" as const,
       source: 'ICS' as const,
-      location: "POL507 - Canadian Politics"
+      location: "POL507 - Power, Change and Technology"
     },
     {
-      id: "demo-assignment-13",
-      title: "Parliamentary Debate Presentation",
+      id: "Book Review-POL507",
+      title: "Book Review",
       course: "POL507",
-      courseName: "Canadian Politics",
-      dueDate: new Date(Date.now() + 6 * 24 * 60 * 60 * 1000).toISOString(),
-      priority: "high" as const,
-      description: "Prepare and deliver a 15-minute presentation analyzing a current parliamentary debate topic (Bill C-11, healthcare funding, or climate policy). Present both government and opposition perspectives. Include Q&A session. Submit presentation slides and speaking notes.",
-      status: "In Progress" as const,
-      source: 'ICS' as const,
-      location: "POL507 - Canadian Politics"
-    },
-    {
-      id: "demo-assignment-13-pol507",
-      title: "Electoral Systems Comparison",
-      course: "POL507",
-      courseName: "Canadian Politics",
-      dueDate: new Date(Date.now() + 22 * 24 * 60 * 60 * 1000).toISOString(),
+      courseName: "Power, Change and Technology",
+      dueDate: new Date(Date.now() + 20 * 24 * 60 * 60 * 1000).toISOString(),
       priority: "low" as const,
-      description: "Comparative essay examining Canada's First-Past-the-Post system versus proportional representation alternatives. Analyze effects on party representation, regional disparities, and voter turnout. Include case studies from recent federal elections. 2000-2500 words.",
+      description: "Comprehensive book review of assigned text. 2000-2500 words analyzing main arguments, methodology, and contributions to the field.",
       status: "Not Started" as const,
       source: 'ICS' as const,
-      location: "POL507 - Canadian Politics"
+      location: "POL507 - Power, Change and Technology"
     },
     
-    // COE70A - Engineering Capstone Project
+    // COE70A - Engineering Capstone
     {
-      id: "demo-assignment-14",
-      title: "Project Proposal",
+      id: "Fall MCR-1-COE70A",
+      title: "Fall MCR-1",
       course: "COE70A",
-      courseName: "Engineering Capstone Project I",
+      courseName: "Computer Engineering Capstone Design-A",
       dueDate: new Date(Date.now() + 4 * 24 * 60 * 60 * 1000).toISOString(),
       priority: "high" as const,
-      description: "Submit detailed capstone project proposal (15-20 pages) including: project objectives, technical requirements, methodology, timeline with milestones, resource requirements, risk analysis, and expected outcomes. Include preliminary research, feasibility analysis, and budget breakdown. Must be approved by faculty advisor.",
+      description: "Monthly Checkpoint Report documenting project progress, challenges, and next steps. Include technical diagrams and milestone completion status.",
       status: "In Progress" as const,
       source: 'ICS' as const,
-      location: "COE70A - Engineering Capstone Project I"
+      location: "COE70A - Engineering Capstone"
     },
     {
-      id: "demo-assignment-15",
-      title: "Literature Review",
+      id: "Fall MCR-2-COE70A",
+      title: "Fall MCR-2",
       course: "COE70A",
-      courseName: "Engineering Capstone Project I",
+      courseName: "Computer Engineering Capstone Design-A",
       dueDate: new Date(Date.now() + 11 * 24 * 60 * 60 * 1000).toISOString(),
       priority: "medium" as const,
-      description: "Comprehensive literature review of existing solutions, technologies, and research related to your capstone project domain. Minimum 20 peer-reviewed sources including journal articles, conference papers, and industry reports. Identify gaps in current solutions and justify your project's contribution. 3000-4000 words.",
       status: "Not Started" as const,
       source: 'ICS' as const,
-      location: "COE70A - Engineering Capstone Project I"
+      location: "COE70A - Engineering Capstone"
     },
     {
-      id: "demo-assignment-15-coe70a",
-      title: "Technical Prototype Demo",
+      id: "Fall MCR-3-COE70A",
+      title: "Fall MCR-3",
       course: "COE70A",
-      courseName: "Engineering Capstone Project I",
-      dueDate: new Date(Date.now() + 19 * 24 * 60 * 60 * 1000).toISOString(),
-      priority: "high" as const,
-      description: "Develop and present a working prototype demonstrating core functionality of your capstone project. Prepare 10-minute demo with technical documentation. Address feasibility concerns and gather feedback from faculty panel. Submit source code and system architecture diagrams.",
+      courseName: "Computer Engineering Capstone Design-A",
+      dueDate: new Date(Date.now() + 18 * 24 * 60 * 60 * 1000).toISOString(),
+      priority: "medium" as const,
       status: "Not Started" as const,
       source: 'ICS' as const,
-      location: "COE70A - Engineering Capstone Project I"
+      location: "COE70A - Engineering Capstone"
+    },
+    {
+      id: "Fall MCR-4-COE70A",
+      title: "Fall MCR-4",
+      course: "COE70A",
+      courseName: "Computer Engineering Capstone Design-A",
+      dueDate: new Date(Date.now() + 25 * 24 * 60 * 60 * 1000).toISOString(),
+      priority: "low" as const,
+      status: "Not Started" as const,
+      source: 'ICS' as const,
+      location: "COE70A - Engineering Capstone"
+    },
+    {
+      id: "Microcontrollers Quiz-COE70A",
+      title: "Microcontrollers Quiz - Due",
+      course: "COE70A",
+      courseName: "Computer Engineering Capstone Design-A",
+      dueDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
+      priority: "high" as const,
+      status: "Not Started" as const,
+      source: 'ICS' as const,
+      location: "COE70A - Engineering Capstone"
+    },
+    {
+      id: "Establishment-COE70A",
+      title: "Establishment of Fall Milestones - All phases",
+      course: "COE70A",
+      courseName: "Computer Engineering Capstone Design-A",
+      dueDate: new Date(Date.now() + 1 * 24 * 60 * 60 * 1000).toISOString(),
+      priority: "high" as const,
+      description: "Define and document all project milestones for the fall semester. Include deliverables, deadlines, and success criteria for each phase.",
+      status: "Not Started" as const,
+      source: 'ICS' as const,
+      location: "COE70A - Engineering Capstone"
     }
   ]
 };
