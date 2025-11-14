@@ -10,7 +10,7 @@ export async function POST() {
   try {
     console.log('[Demo Login API] Starting demo login...');
 
-    // Create a session for demo mode
+    // Create a session for demo mode using cookies()
     const cookieStore = await cookies();
     const session = await getIronSession<SessionData>(cookieStore, sessionOptions);
     
@@ -20,7 +20,7 @@ export async function POST() {
     
     await session.save();
 
-    console.log('[Demo Login API] Session created successfully');
+    console.log('[Demo Login API] Session created and saved. isLoggedIn:', session.isLoggedIn);
 
     return NextResponse.json({
       success: true,

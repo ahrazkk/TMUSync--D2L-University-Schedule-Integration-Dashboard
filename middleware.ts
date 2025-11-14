@@ -1,11 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getIronSession } from 'iron-session';
 import { sessionOptions, SessionData } from './lib/session';
-import { cookies } from 'next/headers';
 
 export async function middleware(request: NextRequest) {
-  const cookieStore = await cookies();
-  const session = await getIronSession<SessionData>(cookieStore, sessionOptions);
+  const response = NextResponse.next();
+  
+  // Use request/response pattern for middleware in Next.js 14
+  const session = await getIronSession<SessionData>(request, response, sessionOptions);
 
   const { isLoggedIn } = session;
   const { pathname } = request.nextUrl;
@@ -29,7 +30,7 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(new URL('/', request.url));
   }
 
-  return NextResponse.next();
+  return response;
 }
 
 export const config = {
