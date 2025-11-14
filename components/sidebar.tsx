@@ -30,7 +30,7 @@ export function Sidebar() {
             <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
               <GraduationCap className="w-5 h-5 text-primary-foreground" />
             </div>
-            <span className="font-semibold text-sidebar-foreground">UniTracker</span>
+            <span className="font-semibold text-sidebar-foreground">TMUSync</span>
           </div>
         )}
         <Button

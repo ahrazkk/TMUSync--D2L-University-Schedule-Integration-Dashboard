@@ -56,7 +56,7 @@ if (!cookiePassword || cookiePassword.length < 32) {
 
 export const sessionOptions: SessionOptions = {
   password: cookiePassword as string,
-  cookieName: 'unitracker-session',
+  cookieName: 'tmusync-session',
   cookieOptions: {
     secure: process.env.NODE_ENV === 'production',
     httpOnly: true,

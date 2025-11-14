@@ -260,7 +260,7 @@ export default function LoginPage() {
         <Card className="w-full max-w-sm bg-white/30 dark:bg-gray-900/30 backdrop-blur-sm border-gray-200/50 dark:border-gray-700/50">
           <CardHeader>
             <CardTitle className="text-3xl font-bold text-center text-gray-900 dark:text-white">
-              TMU<span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-500/40 via-purple-500/40 to-pink-500/40 dark:from-blue-400/50 dark:via-purple-400/50 dark:to-pink-400/50" style={{ WebkitTextStroke: '2px black', paintOrder: 'stroke fill' }}>Sync</span>
+              TMU<span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-500/20 via-purple-500/20 to-pink-500/20 dark:from-blue-400/30 dark:via-purple-400/30 dark:to-pink-400/30" style={{ WebkitTextStroke: '0.5px rgba(0, 0, 0, 0.3)' }}>Sync</span>
             </CardTitle>
             <CardDescription className="text-center text-gray-700 dark:text-gray-300">
               Enter your TMU credentials to sync your schedule.
