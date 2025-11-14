@@ -4,7 +4,8 @@ import { sessionOptions, SessionData } from '@/lib/session';
 import { DEMO_SCHEDULE_DATA } from '@/lib/demo-data';
 import { cookies } from 'next/headers';
 
-export const runtime = 'edge';
+// Use Node.js runtime for better session cookie compatibility
+export const runtime = 'nodejs';
 
 export async function POST() {
   try {
