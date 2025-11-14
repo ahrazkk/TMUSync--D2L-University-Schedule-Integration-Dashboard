@@ -211,7 +211,7 @@ export function AssignmentsPanel({
 
   return (
     <div className="space-y-4">
-      <Card>
+      <Card className="assignments-container">
         <CardHeader className="pb-4">
           <div className={cn(
             "flex items-center justify-between",
@@ -269,7 +269,7 @@ export function AssignmentsPanel({
             <div
               key={index}
               className={cn(
-                "rounded-lg border border-border hover:bg-muted/50 transition-colors",
+                "assignment-card rounded-lg border border-border hover:bg-muted/50 transition-colors",
                 isMobileView 
                   ? "p-4 space-y-3" 
                   : "flex items-start gap-3 p-3"
@@ -467,7 +467,7 @@ export function AssignmentsPanel({
         </CardContent>
       </Card>
 
-      <Card>
+      <Card className="assignments-container">
         <CardHeader className="pb-4">
           <div className={cn(
             "flex items-center justify-between",
@@ -498,7 +498,7 @@ export function AssignmentsPanel({
             <div 
               key={index} 
               className={cn(
-                "rounded-lg border border-border",
+                "assignment-card rounded-lg border border-border hover:bg-muted/50 transition-colors",
                 isMobileView 
                   ? "p-4 space-y-3" 
                   : "flex items-start gap-3 p-3"

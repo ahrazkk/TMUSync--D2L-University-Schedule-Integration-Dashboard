@@ -436,7 +436,7 @@ export function WeeklyCalendar({ events = [], onCourseClick, onAssignmentClick }
                 <div 
                   key={`${day}-cell-${time}`} 
                   className={cn(
-                    "border-t border-r border-border/50",
+                    "calendar-time-slot border-t border-r border-border/50 hover:border-purple-500 hover:bg-purple-500/10",
                     dayjs().isSame(currentDate, 'week') && dayIndex === today && "bg-blue-100/50 dark:bg-blue-950/40"
                   )}
                 ></div>

@@ -99,53 +99,6 @@
   --blending: screen;
 }
 
-.purple {
-  --background: oklch(0.18 0.05 300);
-  --foreground: oklch(0.95 0.02 300);
-  --card: oklch(0.22 0.06 300);
-  --card-foreground: oklch(0.95 0.02 300);
-  --popover: oklch(0.22 0.06 300);
-  --popover-foreground: oklch(0.95 0.02 300);
-  --primary: oklch(0.65 0.25 300);
-  --primary-foreground: oklch(0.98 0.01 300);
-  --secondary: oklch(0.3 0.08 300);
-  --secondary-foreground: oklch(0.95 0.02 300);
-  --muted: oklch(0.3 0.08 300);
-  --muted-foreground: oklch(0.7 0.05 300);
-  --accent: oklch(0.45 0.15 300);
-  --accent-foreground: oklch(0.98 0.01 300);
-  --destructive: oklch(0.55 0.22 0);
-  --destructive-foreground: oklch(0.98 0.01 300);
-  --border: oklch(0.35 0.1 300);
-  --input: oklch(0.35 0.1 300);
-  --ring: oklch(0.65 0.25 300);
-  --chart-1: oklch(0.6 0.25 280);
-  --chart-2: oklch(0.65 0.2 320);
-  --chart-3: oklch(0.7 0.18 290);
-  --chart-4: oklch(0.55 0.22 310);
-  --chart-5: oklch(0.75 0.15 270);
-  --sidebar: oklch(0.25 0.08 300);
-  --sidebar-foreground: oklch(0.95 0.02 300);
-  --sidebar-primary: oklch(0.65 0.25 300);
-  --sidebar-primary-foreground: oklch(0.98 0.01 300);
-  --sidebar-accent: oklch(0.35 0.12 300);
-  --sidebar-accent-foreground: oklch(0.95 0.02 300);
-  --sidebar-border: oklch(0.35 0.1 300);
-  --sidebar-ring: oklch(0.65 0.25 300);
-
-  /* Purple theme bubble background colors */
-  --color-bg1: rgb(25, 15, 35);
-  --color-bg2: rgb(35, 20, 50);
-  --color1: rgb(180, 120, 200);
-  --color2: rgb(140, 100, 180);
-  --color3: rgb(160, 80, 200);
-  --color4: rgb(200, 140, 220);
-  --color5: rgb(120, 80, 160);
-  --color-interactive: rgb(170, 110, 200);
-  --circle-size: 80%;
-  --blending: screen;
-}
-
 @layer base {
   * {
     border-color: var(--border);
@@ -155,12 +108,45 @@
   }
 }
 
-/* White outlines for cards in dark mode */
-.dark [data-slot="card"] {
-  border-color: white;
+/* Ensure calendar grid captures all hover events with lingering effect */
+.calendar-time-slot {
+  pointer-events: auto;
+  transition: border-color 0.5s ease 0s, background-color 0.5s ease 0s, transform 0.5s ease 0s !important;
 }
 
-/* Purple theme card borders */
-.purple [data-slot="card"] {
-  border-color: oklch(0.65 0.25 300);
+.calendar-time-slot:hover {
+  border-color: rgb(139, 92, 246) !important;
+  background-color: rgba(139, 92, 246, 0.1) !important;
+  transform: scale(1.02);
+  transition: border-color 0s ease 0s, background-color 0s ease 0s, transform 0s ease 0s !important;
+}
+
+/* Login page card - special dark outline always visible */
+.login-card {
+  border-color: rgba(0, 0, 0, 0.8) !important;
+  transition: border-color 0.2s ease;
+}
+
+.dark .login-card {
+  border-color: rgba(0, 0, 0, 0.8) !important;
+}
+
+/* Dark purple outline on hover for all interactive cards and components (except login-card) */
+[data-slot="card"]:not(.login-card),
+[data-slot="sidebar"],
+.assignment-card,
+header.border-b {
+  transition: border-color 0.2s ease;
+}
+
+[data-slot="card"]:not(.login-card):hover,
+[data-slot="sidebar"]:hover,
+.assignment-card:hover,
+header.border-b:hover {
+  border-color: rgb(139, 92, 246) !important;
+}
+
+/* Parent card outline when hovering child assignment card */
+.assignments-container:has(.assignment-card:hover) > [data-slot="card"] {
+  border-color: rgb(139, 92, 246) !important;
 }
