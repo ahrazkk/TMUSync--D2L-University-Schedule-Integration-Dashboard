@@ -238,8 +238,8 @@ export default function LoginPage() {
       
       console.log('[Demo Mode] Demo data saved, redirecting to dashboard...');
       
-      // Redirect to dashboard with demo parameter to bypass middleware session check
-      window.location.href = '/?demo=true';
+      // Redirect to dashboard (client-side auth will allow access)
+      window.location.href = '/';
     } catch (err: any) {
       console.error('[Demo Mode] Error:', err);
       setError(err.message || 'Failed to load demo');

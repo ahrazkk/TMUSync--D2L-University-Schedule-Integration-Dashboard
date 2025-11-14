@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect, useMemo } from "react";
+import { useRouter } from "next/navigation";
 import { Sidebar } from "@/components/sidebar";
 import { DashboardHeader } from "@/components/dashboard-header";
 import { WeeklyCalendar } from "@/components/weekly-calendar";
@@ -19,6 +20,7 @@ import {
 } from "@/lib/assignment-persistence";
 
 export default function DashboardPage() {
+  const router = useRouter();
   const [mounted, setMounted] = useState(false);
   const [schedule, setSchedule] = useState<any[] | null>(null);
   const [assignments, setAssignments] = useState<any[] | null>(null);
@@ -40,6 +42,20 @@ export default function DashboardPage() {
   useEffect(() => {
     setMounted(true);
   }, []);
+
+  // Client-side auth check (replaces middleware)
+  useEffect(() => {
+    if (mounted) {
+      const hasSchedule = localStorage.getItem('userSchedule');
+      const hasAssignments = localStorage.getItem('tmu-sync-assignments');
+      const isDemo = localStorage.getItem('isDemo');
+      
+      // If no data at all, redirect to login
+      if (!hasSchedule && !hasAssignments && !isDemo) {
+        router.push('/login');
+      }
+    }
+  }, [mounted, router]);
 
   // Load completion state from localStorage on mount
   useEffect(() => {
