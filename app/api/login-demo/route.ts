@@ -11,7 +11,8 @@ export async function POST() {
     console.log('[Demo Login API] Starting demo login...');
 
     // Create a session for demo mode
-    const session = await getIronSession<SessionData>(cookies(), sessionOptions);
+    const cookieStore = await cookies();
+    const session = await getIronSession<SessionData>(cookieStore, sessionOptions);
     
     session.isLoggedIn = true;
     session.username = 'demo_user';

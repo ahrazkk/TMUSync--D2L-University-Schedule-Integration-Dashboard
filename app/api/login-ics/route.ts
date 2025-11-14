@@ -349,7 +349,8 @@ export async function POST(request: NextRequest) {
     console.log('[API ICS] Login successful with ICS URLs');
 
     // Get session and set data
-    const session = await getIronSession<SessionData>(cookies(), sessionOptions);
+    const cookieStore = await cookies();
+    const session = await getIronSession<SessionData>(cookieStore, sessionOptions);
     session.isLoggedIn = true;
     session.id = sessionId;
     session.icsUrl = assignmentsIcsUrl || '';
