@@ -97,3 +97,4 @@ user-sessions/
 # Temporary files
 tmp/
 temp/
+.vercel

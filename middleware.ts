@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getIronSession } from 'iron-session';
 import { sessionOptions, SessionData } from './lib/session';
+import { cookies } from 'next/headers';
 
 export async function middleware(request: NextRequest) {
-  const response = NextResponse.next();
-  const session = await getIronSession<SessionData>(request, response, sessionOptions);
+  const session = await getIronSession<SessionData>(cookies(), sessionOptions);
 
   const { isLoggedIn } = session;
   const { pathname } = request.nextUrl;
@@ -28,7 +28,7 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(new URL('/', request.url));
   }
 
-  return response;
+  return NextResponse.next();
 }
 
 export const config = {

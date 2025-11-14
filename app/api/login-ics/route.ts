@@ -6,6 +6,7 @@ import { parseICS } from 'node-ical';
 import axios from 'axios';
 import dayjs from 'dayjs';
 import isSameOrAfter from 'dayjs/plugin/isSameOrAfter';
+import { cookies } from 'next/headers';
 
 dayjs.extend(isSameOrAfter);
 
@@ -347,15 +348,8 @@ export async function POST(request: NextRequest) {
     // Save session data
     console.log('[API ICS] Login successful with ICS URLs');
 
-    // Create response with session cookie
-    const response = NextResponse.json({
-      success: true,
-      schedule: combinedSchedule,
-      needsSetup: false
-    });
-    
-    // Get session and set data (using request/response pattern like middleware)
-    const session = await getIronSession<SessionData>(request, response, sessionOptions);
+    // Get session and set data
+    const session = await getIronSession<SessionData>(cookies(), sessionOptions);
     session.isLoggedIn = true;
     session.id = sessionId;
     session.icsUrl = assignmentsIcsUrl || '';
@@ -364,7 +358,12 @@ export async function POST(request: NextRequest) {
     
     console.log('[API ICS] Session set and saved with cookie');
     
-    return response;
+    // Create response after session is saved
+    return NextResponse.json({
+      success: true,
+      schedule: combinedSchedule,
+      needsSetup: false
+    });
 
   } catch (error) {
     console.error('[API ICS] Login process failed:', error);

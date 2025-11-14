@@ -1,23 +1,17 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { getIronSession } from 'iron-session';
 import { sessionOptions, SessionData } from '@/lib/session';
 import { DEMO_SCHEDULE_DATA } from '@/lib/demo-data';
+import { cookies } from 'next/headers';
 
 export const runtime = 'edge';
 
-export async function POST(request: NextRequest) {
+export async function POST() {
   try {
     console.log('[Demo Login API] Starting demo login...');
 
-    const response = NextResponse.json({
-      success: true,
-      message: 'Demo login successful',
-      schedule: { classes: DEMO_SCHEDULE_DATA.classes },
-      assignments: DEMO_SCHEDULE_DATA.assignments
-    });
-
     // Create a session for demo mode
-    const session = await getIronSession<SessionData>(request, response, sessionOptions);
+    const session = await getIronSession<SessionData>(cookies(), sessionOptions);
     
     session.isLoggedIn = true;
     session.username = 'demo_user';
@@ -27,7 +21,12 @@ export async function POST(request: NextRequest) {
 
     console.log('[Demo Login API] Session created successfully');
 
-    return response;
+    return NextResponse.json({
+      success: true,
+      message: 'Demo login successful',
+      schedule: { classes: DEMO_SCHEDULE_DATA.classes },
+      assignments: DEMO_SCHEDULE_DATA.assignments
+    });
   } catch (error) {
     console.error('[Demo Login API] Error:', error);
     return NextResponse.json(
