@@ -9,5 +9,9 @@ export async function POST() {
   // This clears the session data and removes the cookie.
   session.destroy();
 
-  return NextResponse.json({ success: true });
+  // Also clear demo mode cookie if it exists
+  const response = NextResponse.json({ success: true });
+  response.cookies.delete('demo-mode');
+
+  return response;
 }

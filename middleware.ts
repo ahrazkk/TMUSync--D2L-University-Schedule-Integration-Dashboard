@@ -5,11 +5,45 @@ import { sessionOptions, SessionData } from './lib/session';
 export async function middleware(request: NextRequest) {
   const response = NextResponse.next();
   
+  // Check for demo mode query parameter (set during demo login redirect)
+  const { searchParams, pathname } = request.nextUrl;
+  const isDemoMode = searchParams.get('demo') === 'true';
+  
+  // Check for demo cookie that persists across requests
+  const demoCookie = request.cookies.get('demo-mode');
+  const hasDemoCookie = demoCookie?.value === 'true';
+  
+  // If in demo mode, bypass session authentication entirely
+  if (isDemoMode || hasDemoCookie) {
+    console.log(`[Middleware] ${pathname} - Demo mode active, bypassing session check`);
+    
+    // Set demo cookie if coming from login with demo param
+    if (isDemoMode && !hasDemoCookie) {
+      response.cookies.set('demo-mode', 'true', {
+        httpOnly: false, // Allow client-side access
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax',
+        path: '/',
+        maxAge: 60 * 60 * 24 * 7, // 7 days
+      });
+    }
+    
+    // Remove demo param from URL to clean it up
+    if (isDemoMode && pathname !== '/login') {
+      const url = request.nextUrl.clone();
+      url.searchParams.delete('demo');
+      if (url.search !== request.nextUrl.search) {
+        return NextResponse.redirect(url);
+      }
+    }
+    
+    return response;
+  }
+  
   // Use request/response pattern for middleware in Next.js 14
   const session = await getIronSession<SessionData>(request, response, sessionOptions);
 
   const { isLoggedIn } = session;
-  const { pathname } = request.nextUrl;
 
   // Debug logging
   console.log(`[Middleware] ${pathname} - isLoggedIn: ${isLoggedIn}, username: ${session.username}`)
