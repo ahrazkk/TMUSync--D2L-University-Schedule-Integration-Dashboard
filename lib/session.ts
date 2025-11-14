@@ -62,6 +62,7 @@ export const sessionOptions: SessionOptions = {
     httpOnly: true,
     sameSite: 'lax',
     path: '/',
+    maxAge: 60 * 60 * 24 * 7, // 1 week
   },
 };
 
