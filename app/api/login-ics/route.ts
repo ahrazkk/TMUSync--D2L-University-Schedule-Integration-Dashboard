@@ -147,7 +147,6 @@ export async function POST(request: NextRequest) {
               }
 
               // This is a recurring class event
-              const dayOfWeek = dayjs(event.start).day(); // 0 = Sunday, 1 = Monday, etc.
               const startTime = dayjs(event.start).format('h:mm A');
               const endTime = dayjs(event.end).format('h:mm A');
               const duration = dayjs(event.end).diff(dayjs(event.start), 'hour', true);
@@ -159,35 +158,77 @@ export async function POST(request: NextRequest) {
                 courseName = courseMatch[1];
               }
 
-              scrapedClasses.push({
-                title: event.summary,
-                courseName: courseName,
-                type: 'class',
-                day: dayOfWeek,
-                startTime: startTime,
-                duration: duration,
-                location: event.location || 'TBA',
-                courseDetails: {
-                  key: courseName,
-                  code: courseName,
+              // Parse day of week from rrule
+              // The rrule.options.byweekday array contains 0-based weekday numbers where:
+              // 0=Monday, 1=Tuesday, 2=Wednesday, 3=Thursday, 4=Friday, 5=Saturday, 6=Sunday
+              // We need to convert to calendar format: 1=Sunday, 2=Monday, 3=Tuesday, etc.
+              let daysOfWeek: number[] = [];
+
+              if (event.rrule?.options?.byweekday && Array.isArray(event.rrule.options.byweekday)) {
+                // Map rrule weekday (0=Mon...6=Sun) to calendar day (1=Sun, 2=Mon...7=Sat)
+                daysOfWeek = event.rrule.options.byweekday.map((rruleDay: number) => {
+                  // rruleDay: 0=Mon, 1=Tue, 2=Wed, 3=Thu, 4=Fri, 5=Sat, 6=Sun
+                  // calendar: 1=Sun, 2=Mon, 3=Tue, 4=Wed, 5=Thu, 6=Fri, 7=Sat
+                  if (rruleDay === 6) return 1; // Sunday
+                  return rruleDay + 2; // Monday=2, Tuesday=3, etc.
+                });
+              } else {
+                // Fallback: use the start date's day of week
+                daysOfWeek = [dayjs(event.start).day() + 1];
+              }
+
+              console.log(`[API ICS] Processing event: ${event.summary}, RRule byweekday: ${event.rrule?.options?.byweekday}, Mapped days: ${daysOfWeek}, Time: ${startTime}`);
+
+              // Extract the date range from rrule (dtstart and until)
+              const classStartDate = event.rrule?.options?.dtstart ? dayjs(event.rrule.options.dtstart).format('YYYY-MM-DD') : eventDate.format('YYYY-MM-DD');
+              const classEndDate = event.rrule?.options?.until ? dayjs(event.rrule.options.until).format('YYYY-MM-DD') : null;
+
+              // Create a class entry for each day of the week this class occurs
+              daysOfWeek.forEach(dayOfWeek => {
+                scrapedClasses.push({
                   title: event.summary,
-                  description: event.description || 'No description available',
+                  courseName: courseName,
+                  type: 'class',
+                  day: dayOfWeek,
+                  startTime: startTime,
+                  duration: duration,
                   location: event.location || 'TBA',
-                  sessions: [{
-                    type: 'LEC',
-                    day: dayOfWeek,
-                    startTime: startTime,
-                    endTime: endTime,
-                    duration: duration,
-                    location: event.location || 'TBA'
-                  }]
-                }
+                  startDate: classStartDate,  // Add start date
+                  endDate: classEndDate,      // Add end date
+                  courseDetails: {
+                    key: courseName,
+                    code: courseName,
+                    title: event.summary,
+                    description: event.description || 'No description available',
+                    location: event.location || 'TBA',
+                    sessions: [{
+                      type: 'LEC',
+                      day: dayOfWeek,
+                      startTime: startTime,
+                      endTime: endTime,
+                      duration: duration,
+                      location: event.location || 'TBA'
+                    }]
+                  }
+                });
               });
             }
           }
         }
 
-        console.log(`[API ICS] Parsed ${scrapedClasses.length} schedule events from ICS (filtered to current semester)`);
+        // Deduplicate classes that have the same course, day, and time
+        // (Google Calendar sometimes creates multiple rrule entries for schedule changes)
+        const uniqueClassesMap = new Map();
+        for (const classItem of scrapedClasses) {
+          const key = `${classItem.courseName}-${classItem.day}-${classItem.startTime}`;
+          if (!uniqueClassesMap.has(key)) {
+            uniqueClassesMap.set(key, classItem);
+          }
+        }
+        scrapedClasses.length = 0;
+        scrapedClasses.push(...uniqueClassesMap.values());
+
+        console.log(`[API ICS] Deduplicated schedule events to ${scrapedClasses.length} unique classes`);
       } catch (scheduleError) {
         console.error('[API ICS] Failed to fetch or parse schedule ICS:', scheduleError);
         return NextResponse.json(

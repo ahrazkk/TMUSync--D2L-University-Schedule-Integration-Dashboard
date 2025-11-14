@@ -132,6 +132,8 @@ interface CalendarEvent {
   duration?: number;
   type: string;
   dueDate?: string;
+  startDate?: string;  // Start date for recurring classes
+  endDate?: string;    // End date for recurring classes
   courseDetails?: any; // Will contain detailed course information
 }
 
@@ -184,8 +186,29 @@ export function WeeklyCalendar({ events = [], onCourseClick, onAssignmentClick }
   const endOfWeek = currentDate.endOf('week');
   const formattedDateRange = `${startOfWeek.format('MMM D')} - ${endOfWeek.format('MMM D, YYYY')}`;
 
-  // Calculate event layouts for overlapping events
-  const eventLayouts = getEventLayout(events, currentDate);
+  // Filter events to only include those in the current visible week
+  const visibleEvents = events.filter(event => {
+    // Filter assignments by their due date
+    if (event.type === 'assignment' && event.dueDate) {
+      const eventDate = dayjs(event.dueDate);
+      return eventDate.isBetween(startOfWeek, endOfWeek, 'day', '[]');
+    }
+    
+    // Filter class events by their date range
+    if (event.type === 'class' && event.startDate) {
+      const classStart = dayjs(event.startDate);
+      const classEnd = event.endDate ? dayjs(event.endDate) : dayjs().add(1, 'year');
+      
+      // Check if the current visible week overlaps with the class's date range
+      return !(endOfWeek.isBefore(classStart, 'day') || startOfWeek.isAfter(classEnd, 'day'));
+    }
+    
+    // Include events without date info (fallback)
+    return true;
+  });
+
+  // Calculate event layouts for overlapping events using only visible events
+  const eventLayouts = getEventLayout(visibleEvents, currentDate);
 
   // Toggle between list and calendar view
   const toggleView = () => {
@@ -414,12 +437,9 @@ export function WeeklyCalendar({ events = [], onCourseClick, onAssignmentClick }
           ))}
           
           {/* --- MODIFIED RENDER LOGIC --- */}
-          {events.map((event, index) => {
-            // Only render events that are in the current visible week
+          {visibleEvents.map((event, index) => {
+            // Parse event date for assignments
             const eventDate = event.dueDate ? dayjs(event.dueDate) : null;
-            if (event.type === 'assignment' && eventDate && !eventDate.isBetween(startOfWeek, endOfWeek, 'day', '[]')) {
-              return null;
-            }
 
             // A. Handle CLASS events
             if (event.type === 'class' && event.day && event.startTime && event.duration) {
@@ -429,16 +449,45 @@ export function WeeklyCalendar({ events = [], onCourseClick, onAssignmentClick }
               const colorClass = getCourseColor(event.courseName, index === 0 && !isRenderClearing, isCurrentDay);
               const layout = eventLayouts[index] || { width: '100%', left: '0%', zIndex: 10 };
               
+              // Calculate responsive font size based on text length AND box height (duration)
+              const getResponsiveFontSize = (textLength: number, duration: number, hasOverlap: boolean) => {
+                // If overlapping with others, keep it smaller
+                if (hasOverlap) {
+                  return textLength > 30 ? '0.45rem' : textLength > 25 ? '0.5rem' : textLength > 20 ? '0.55rem' : textLength > 15 ? '0.6rem' : '0.65rem';
+                }
+                
+                // For longer duration events (2+ hours), allow bigger text
+                if (duration >= 2) {
+                  return textLength > 35 ? '0.6rem' : textLength > 30 ? '0.65rem' : textLength > 25 ? '0.7rem' : textLength > 20 ? '0.75rem' : '0.8rem';
+                }
+                
+                // Normal duration (< 2 hours) - allow smaller text to fit more
+                return textLength > 30 ? '0.5rem' : textLength > 25 ? '0.55rem' : textLength > 20 ? '0.6rem' : textLength > 15 ? '0.65rem' : '0.7rem';
+              };
+
+              // Calculate max lines based on duration
+              const getMaxLines = (duration: number) => {
+                if (duration >= 3) return 5; // 3+ hours: up to 5 lines
+                if (duration >= 2) return 4; // 2-3 hours: up to 4 lines
+                if (duration >= 1) return 3; // 1-2 hours: up to 3 lines
+                return 2; // < 1 hour: up to 2 lines
+              };
+
+              const hasOverlap = layout.width !== '100%';
+              const fontSize = getResponsiveFontSize(event.title.length, event.duration || 1, hasOverlap);
+              const maxLines = getMaxLines(event.duration || 1);
+
               return (
                 <div
                   key={uniqueKey}
-                  className={cn("relative rounded text-xs p-1 m-1 font-medium overflow-hidden flex items-start justify-start cursor-pointer hover:brightness-110 transition-all", colorClass)}
+                  className={cn("relative rounded text-xs font-medium overflow-hidden flex items-start justify-start cursor-pointer hover:brightness-110 transition-all", colorClass)}
                   style={{ 
                     gridColumnStart: event.day + 1, 
                     gridRow: gridRow,
                     width: layout.width === '100%' ? 'auto' : layout.width,
                     marginLeft: layout.left !== '0%' ? layout.left : '0px',
-                    zIndex: layout.zIndex
+                    zIndex: layout.zIndex,
+                    padding: '2px 4px' // Tighter padding for better fit
                   }}
                   onClick={() => {
                     if (onCourseClick) {
@@ -451,7 +500,17 @@ export function WeeklyCalendar({ events = [], onCourseClick, onAssignmentClick }
                   }}
                   title={`Click to view ${event.courseName} details`}
                 >
-                  <span>{event.title}</span>
+                  <span className="w-full" style={{ 
+                    fontSize: fontSize,
+                    minWidth: '0',
+                    wordBreak: 'break-word',
+                    overflow: 'hidden',
+                    display: '-webkit-box',
+                    WebkitLineClamp: maxLines,
+                    WebkitBoxOrient: 'vertical',
+                    textAlign: 'left',
+                    lineHeight: '1.1' // Tighter line height to reduce vertical space
+                  }}>{event.title}</span>
                 </div>
               );
             }
@@ -481,7 +540,7 @@ export function WeeklyCalendar({ events = [], onCourseClick, onAssignmentClick }
               }
 
               // Enhanced assignment colors for current day
-              const assignmentColorClass = isCurrentDay 
+              const assignmentColorClass = isCurrentDay
                 ? "relative rounded bg-slate-900/70 text-slate-100 border border-slate-600 text-xs p-1 m-1 font-medium overflow-hidden flex items-start justify-start gap-1 cursor-pointer hover:brightness-110 transition-all dark:bg-slate-950/80 dark:text-slate-200 dark:border-slate-400"
                 : "relative rounded bg-slate-900/40 text-slate-200 border border-slate-700/50 text-xs p-1 m-1 font-medium overflow-hidden flex items-start justify-start gap-1 cursor-pointer hover:brightness-110 transition-all dark:bg-slate-950/50 dark:text-slate-300 dark:border-slate-600/40";
 
@@ -504,7 +563,17 @@ export function WeeklyCalendar({ events = [], onCourseClick, onAssignmentClick }
                   title={`Click to view assignment details: ${event.title}`}
                 >
                   <FileText className="w-3 h-3 flex-shrink-0" />
-                  <span className="truncate">{event.title}</span>
+                  <span style={{ 
+                    fontSize: event.title.length > 35 ? '0.45rem' : event.title.length > 30 ? '0.5rem' : event.title.length > 25 ? '0.55rem' : event.title.length > 18 ? '0.6rem' : '0.65rem',
+                    minWidth: '0',
+                    wordBreak: 'break-word',
+                    overflow: 'hidden',
+                    display: '-webkit-box',
+                    WebkitLineClamp: 2,
+                    WebkitBoxOrient: 'vertical',
+                    textAlign: 'left',
+                    lineHeight: '1.1'
+                  }}>{event.title}</span>
                 </div>
               )
             }
