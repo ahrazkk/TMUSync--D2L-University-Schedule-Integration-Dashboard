@@ -6,9 +6,13 @@ import { parseICS } from 'node-ical';
 import axios from 'axios';
 import dayjs from 'dayjs';
 import isSameOrAfter from 'dayjs/plugin/isSameOrAfter';
+import utc from 'dayjs/plugin/utc';
+import timezone from 'dayjs/plugin/timezone';
 import { cookies } from 'next/headers';
 
 dayjs.extend(isSameOrAfter);
+dayjs.extend(utc);
+dayjs.extend(timezone);
 
 // Helper function to get current semester start date
 function getCurrentSemesterStart(): dayjs.Dayjs {
@@ -148,8 +152,10 @@ export async function POST(request: NextRequest) {
               }
 
               // This is a recurring class event
-              const startTime = dayjs(event.start).format('h:mm A');
-              const endTime = dayjs(event.end).format('h:mm A');
+              // ICS files from D2L/Google Calendar often use UTC times
+              // Convert to local timezone (America/Toronto for TMU)
+              const startTime = dayjs(event.start).tz('America/Toronto').format('h:mm A');
+              const endTime = dayjs(event.end).tz('America/Toronto').format('h:mm A');
               const duration = dayjs(event.end).diff(dayjs(event.start), 'hour', true);
 
               // Extract course code from summary (e.g., "CPS714-021 - LEC" -> "CPS714")
