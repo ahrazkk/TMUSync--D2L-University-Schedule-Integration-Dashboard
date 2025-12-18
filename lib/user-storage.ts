@@ -58,6 +58,7 @@ export interface Course {
     code: string;
     weeklyHours: number;
     color?: string;
+    description?: string;
     sessions: CourseSession[];
 }
 

@@ -21,6 +21,19 @@ export async function GET(request: NextRequest) {
             return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
         }
 
+        // Check for Demo User
+        const { DEMO_USER_ID, DEMO_ASSIGNMENT_STATES } = await import('@/lib/demo-data');
+        if (session.userId === DEMO_USER_ID) {
+            // Convert the record to array of IDs for the frontend
+            const completedIds = Object.entries(DEMO_ASSIGNMENT_STATES)
+                .filter(([_, state]) => state === 'completed')
+                .map(([id]) => id);
+
+            return NextResponse.json({
+                completedIds
+            });
+        }
+
         // Get user's assignment states from Firestore
         const userDoc = await adminDb.collection('users').doc(session.userId).get();
         const userData = userDoc.data();
@@ -47,6 +60,17 @@ export async function POST(request: NextRequest) {
 
         const body: AssignmentStatesRequest = await request.json();
         const { completedIds } = body;
+
+        // Check for Demo User
+        const { DEMO_USER_ID } = await import('@/lib/demo-data');
+        if (session.userId === DEMO_USER_ID) {
+            // Mock success for demo user
+            return NextResponse.json({
+                success: true,
+                message: 'Assignment states saved (Demo Mode)',
+                count: completedIds.length,
+            });
+        }
 
         // Update user's assignment states in Firestore
         await adminDb.collection('users').doc(session.userId).update({
@@ -79,6 +103,17 @@ export async function PATCH(request: NextRequest) {
 
         if (!assignmentId) {
             return NextResponse.json({ error: 'Assignment ID required' }, { status: 400 });
+        }
+
+        // Check for Demo User
+        const { DEMO_USER_ID } = await import('@/lib/demo-data');
+        if (session.userId === DEMO_USER_ID) {
+            // Mock success for demo user
+            return NextResponse.json({
+                success: true,
+                completed,
+                totalCompleted: completed ? 1 : 0, // Inaccurate total but sufficient for toggle response
+            });
         }
 
         // Get current states

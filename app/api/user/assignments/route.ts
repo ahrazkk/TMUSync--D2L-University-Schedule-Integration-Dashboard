@@ -25,6 +25,23 @@ export async function GET() {
             return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
         }
 
+        // Check for Demo User
+        const { DEMO_USER_ID, DEMO_ASSIGNMENTS } = await import('@/lib/demo-data');
+        if (session.userId === DEMO_USER_ID) {
+            // For demo user, return assignments that are marked as 'custom' in the demo data
+            // or just return all of them if the frontend expects 'customAssignments' to be separate.
+            // The dashboard seems to merge them. Let's return the custom ones from our demo set.
+            const customDemoAssignments = DEMO_ASSIGNMENTS.filter(a => a.source === 'custom').map(a => ({
+                ...a,
+                courseKey: a.course, // Map course to courseKey for CustomAssignment interface
+                repetition: 'none',
+                createdAt: new Date().toISOString()
+            }));
+            return NextResponse.json({
+                customAssignments: customDemoAssignments,
+            });
+        }
+
         const userData = await getUserData(session.userId);
 
         if (!userData) {

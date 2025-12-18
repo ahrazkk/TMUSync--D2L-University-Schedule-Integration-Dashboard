@@ -18,6 +18,25 @@ export async function GET() {
             return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
         }
 
+        // Check for Demo User
+        const { DEMO_USER_ID, DEMO_COURSES, DEMO_ASSIGNMENTS, DEMO_CLASS_EVENTS, DEMO_USER_PROFILE, DEMO_ASSIGNMENT_STATES } = await import('@/lib/demo-data');
+        if (session.userId === DEMO_USER_ID) {
+            return NextResponse.json({
+                firstName: DEMO_USER_PROFILE.firstName,
+                icsUrls: DEMO_USER_PROFILE.icsUrls,
+                cachedData: {
+                    courses: DEMO_COURSES,
+                    assignments: DEMO_ASSIGNMENTS,
+                    classEvents: DEMO_CLASS_EVENTS,
+                    weeklyClassHours: DEMO_COURSES.reduce((sum, c) => sum + c.weeklyHours, 0),
+                    lastRefreshed: new Date().toISOString()
+                },
+                customAssignments: [],
+                assignmentStates: DEMO_ASSIGNMENT_STATES,
+                preferences: DEMO_USER_PROFILE.preferences,
+            });
+        }
+
         const userData = await getUserData(session.userId);
 
         if (!userData) {

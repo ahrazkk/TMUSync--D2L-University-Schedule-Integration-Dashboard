@@ -17,6 +17,14 @@ export async function GET() {
             return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
         }
 
+        // Check for Demo User
+        const { DEMO_USER_ID } = await import('@/lib/demo-data');
+        if (session.userId === DEMO_USER_ID) {
+            return NextResponse.json({
+                customizations: {},
+            });
+        }
+
         const userData = await getUserData(session.userId);
 
         return NextResponse.json({
@@ -45,6 +53,12 @@ export async function POST(request: NextRequest) {
                 { error: 'Class ID and customization data are required' },
                 { status: 400 }
             );
+        }
+
+        // Check for Demo User
+        const { DEMO_USER_ID } = await import('@/lib/demo-data');
+        if (session.userId === DEMO_USER_ID) {
+            return NextResponse.json({ success: true });
         }
 
         await updateClassCustomization(session.userId, classId, customization);

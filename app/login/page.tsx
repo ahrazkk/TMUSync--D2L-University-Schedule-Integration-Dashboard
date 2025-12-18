@@ -54,6 +54,17 @@ export default function LoginPage() {
 
   useEffect(() => {
     setMounted(true)
+
+    // Auto-logout if visiting login page to break redirect loops (especially from demo mode)
+    // This allows the user to re-login purely by navigating here.
+    const clearSession = async () => {
+      try {
+        await fetch('/api/auth/logout', { method: 'POST' });
+      } catch (e) {
+        console.error("Failed to clear session on login page visit", e);
+      }
+    };
+    clearSession();
   }, [])
 
   // Email/password login form
@@ -94,7 +105,7 @@ export default function LoginPage() {
       }
 
       // Redirect to dashboard
-      window.location.href = '/'
+      window.location.href = '/dashboard'
     } catch (err: any) {
       setError(err.message || "Failed to login. Please try again.")
       setIsLoading(false)
@@ -212,6 +223,16 @@ export default function LoginPage() {
               ) : (
                 "Sign In"
               )}
+            </Button>
+
+            {/* Back to Home Button */}
+            <Button
+              type="button"
+              variant="ghost"
+              className="w-full text-muted-foreground hover:text-foreground"
+              onClick={() => router.push('/')}
+            >
+              Back to Home
             </Button>
           </form>
 

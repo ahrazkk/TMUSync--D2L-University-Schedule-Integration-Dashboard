@@ -47,71 +47,50 @@
   --color-interactive: rgb(255, 180, 200);
   --circle-size: 80%;
   --blending: overlay;
-
-
-
+  --spotlight-color: rgba(0, 0, 0, 0.6);
 }
 
 .dark {
-  --background: oklch(0.145 0 0);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.145 0 0);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.145 0 0);
-  --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.985 0 0);
-  --primary-foreground: oklch(0.205 0 0);
-  --secondary: oklch(0.269 0 0);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.269 0 0);
-  --accent-foreground: oklch(0.985 0 0);
+  /* Dark mode - Neo-Brutalist / Editorial Dark */
+  --background: oklch(0.10 0 0);
+  /* Deeper black */
+  --foreground: oklch(0.98 0 0);
+  /* Bright white */
+  --card: oklch(0.12 0 0);
+  --card-foreground: oklch(0.98 0 0);
+  --popover: oklch(0.10 0 0);
+  --popover-foreground: oklch(0.98 0 0);
+  --primary: oklch(0.98 0 0);
+  /* White primary for high contrast */
+  --primary-foreground: oklch(0.10 0 0);
+  --secondary: oklch(0.20 0 0);
+  --secondary-foreground: oklch(0.98 0 0);
+  --muted: oklch(0.20 0 0);
+  --muted-foreground: oklch(0.60 0 0);
+  --accent: oklch(0.20 0 0);
+  --accent-foreground: oklch(0.98 0 0);
   --destructive: oklch(0.396 0.141 25.723);
   --destructive-foreground: oklch(0.637 0.237 25.331);
-  --border: oklch(0.269 0 0);
-  --input: oklch(0.269 0 0);
-  --ring: oklch(0.439 0 0);
+  --border: oklch(0.20 0 0);
+  --input: oklch(0.20 0 0);
+  --ring: oklch(0.80 0 0);
+
   --chart-1: oklch(0.488 0.243 264.376);
   --chart-2: oklch(0.696 0.17 162.48);
   --chart-3: oklch(0.769 0.188 70.08);
   --chart-4: oklch(0.627 0.265 303.9);
   --chart-5: oklch(0.645 0.246 16.439);
-  --sidebar: oklch(0.205 0 0);
-  --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.269 0 0);
-  --sidebar-accent-foreground: oklch(0.985 0 0);
-  --sidebar-border: oklch(0.269 0 0);
-  --sidebar-ring: oklch(0.439 0 0);
 
-  /* Dark mode bubble background colors - darker, more muted pastels */
-  --color-bg1: rgb(15, 15, 15);
-  --color-bg2: rgb(25, 25, 30);
-  --color1: rgb(180, 100, 120);
-  /* Muted pink */
-  --color2: rgb(100, 120, 180);
-  /* Muted blue */
-  --color3: rgb(120, 180, 140);
-  /* Muted green */
-  --color4: rgb(180, 140, 100);
-  /* Muted orange */
-  --color5: rgb(140, 100, 180);
-  /* Muted purple */
-  --color-interactive: rgb(160, 120, 140);
-  --circle-size: 80%;
-  --circle-size: 80%;
-  --blending: screen;
+  --sidebar: oklch(0.12 0 0);
+  --sidebar-foreground: oklch(0.98 0 0);
+  --sidebar-primary: oklch(0.98 0 0);
+  --sidebar-primary-foreground: oklch(0.10 0 0);
+  --sidebar-accent: oklch(0.20 0 0);
+  --sidebar-accent-foreground: oklch(0.98 0 0);
+  --sidebar-border: oklch(0.20 0 0);
+  --sidebar-ring: oklch(0.80 0 0);
 
-  --spotlight-color: rgba(255, 255, 255, 1);
-  /* Pure white for visibility */
-}
-
-:root {
-  /* ... existing vars ... */
-  --spotlight-color: rgba(0, 0, 0, 0.6);
-  /* Black glow in light mode */
+  --spotlight-color: rgba(255, 255, 255, 0.8);
 }
 
 @layer base {
@@ -124,22 +103,87 @@
   }
 }
 
-/* White outlines for cards in dark mode with refined opacity */
-.dark [data-slot="card"] {
-  border-color: rgba(255, 255, 255, 0.1);
-}
-
-/* Cinematic Utilities */
-.animation-delay-2000 {
-  animation-delay: 2s;
-}
-
-.animation-delay-4000 {
-  animation-delay: 4s;
-}
-
+/* Utilities */
 .bg-noise {
-  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.4'/%3E%3C/svg%3E");
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  pointer-events: none;
+  z-index: 50;
+  opacity: 0.05;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
+}
+
+.bg-noise-dashboard {
+  opacity: 0.13 !important;
+}
+
+.bg-noise-home {
+  opacity: 0.02 !important;
+  /* Higher frequency for TV static effect */
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 400 400' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='1.8' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
+  animation: staticFlicker 0.15s steps(10) infinite;
+}
+
+@keyframes staticFlicker {
+  0% {
+    transform: translate(0, 0);
+  }
+
+  10% {
+    transform: translate(-2%, -2%);
+  }
+
+  20% {
+    transform: translate(2%, 2%);
+  }
+
+  30% {
+    transform: translate(-1%, 1%);
+  }
+
+  40% {
+    transform: translate(1%, -1%);
+  }
+
+  50% {
+    transform: translate(-2%, 0);
+  }
+
+  60% {
+    transform: translate(0, 2%);
+  }
+
+  70% {
+    transform: translate(2%, -2%);
+  }
+
+  80% {
+    transform: translate(-1%, -1%);
+  }
+
+  90% {
+    transform: translate(1%, 1%);
+  }
+
+  100% {
+    transform: translate(0, 0);
+  }
+}
+
+/* Grid Background Utility */
+.bg-grid-white\/5 {
+  background-size: 40px 40px;
+  background-image: linear-gradient(to right, rgba(255, 255, 255, 0.05) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(255, 255, 255, 0.05) 1px, transparent 1px);
+}
+
+.bg-grid-black\/5 {
+  background-size: 40px 40px;
+  background-image: linear-gradient(to right, rgba(0, 0, 0, 0.05) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(0, 0, 0, 0.05) 1px, transparent 1px);
 }
 
 /* Spotlight Effect */
@@ -151,15 +195,8 @@
   width: 100%;
   height: 100%;
   pointer-events: none;
-  z-index: 9999;
-  background: radial-gradient(600px circle at var(--mouse-x, 50%) var(--mouse-y, 50%),
-      rgba(255, 255, 255, 0.06),
-      transparent 40%);
-  mix-blend-mode: overlay;
-}
-
-.dark .spotlight-active::before {
-  background: radial-gradient(600px circle at var(--mouse-x, 50%) var(--mouse-y, 50%),
-      rgba(255, 255, 255, 0.08),
+  z-index: 40;
+  background: radial-gradient(800px circle at var(--mouse-x, 50%) var(--mouse-y, 50%),
+      rgba(255, 255, 255, 0.03),
       transparent 40%);
 }

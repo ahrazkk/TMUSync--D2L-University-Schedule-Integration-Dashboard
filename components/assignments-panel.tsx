@@ -311,7 +311,7 @@ export function AssignmentsPanel({
               key={index}
               onClick={() => onAssignmentClick?.(assignment)}
               className={cn(
-                "rounded-lg border border-border hover:bg-muted/50 transition-all duration-500 cursor-pointer relative group overflow-hidden",
+                "rounded-lg border-2 border-border/50 dark:border-white/40 hover:bg-muted/50 transition-all duration-500 cursor-pointer relative group overflow-hidden",
                 exitingIds.includes(getAssignmentId(assignment)) && "opacity-0 translate-x-10 pointer-events-none scale-95",
                 isMobileView
                   ? "p-4 space-y-3"
@@ -558,7 +558,7 @@ export function AssignmentsPanel({
             <div
               key={index}
               className={cn(
-                "rounded-lg border border-border relative group overflow-hidden",
+                "rounded-lg border-2 border-border/50 dark:border-white/40 relative group overflow-hidden",
                 isMobileView
                   ? "p-4 space-y-3"
                   : "flex items-start gap-3 p-3"

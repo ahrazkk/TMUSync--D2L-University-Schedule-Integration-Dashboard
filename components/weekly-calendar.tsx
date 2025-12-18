@@ -355,7 +355,7 @@ export function WeeklyCalendar({
   }
 
   return (
-    <Card className="h-fit" hoverable>
+    <Card className="h-fit dark:border-white/20" hoverable>
       <CardHeader className="pb-4">
         <div className="flex items-center justify-between">
           <CardTitle className={cn(

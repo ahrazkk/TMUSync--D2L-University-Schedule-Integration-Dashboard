@@ -172,7 +172,7 @@ export function StatsCards({ assignmentStats, courseStats, weeklyHours, currentD
               <div className="relative h-full w-full transition-all duration-700 transform-style-3d group-hover:rotate-x-180">
                 {/* Front Face */}
                 <div className="absolute inset-0 backface-hidden">
-                  <Card className="h-full border shadow-sm bg-card hover:shadow-md transition-shadow" hoverable>
+                  <Card className="h-full border shadow-sm bg-card hover:shadow-md transition-shadow dark:border-white/20" hoverable>
                     <CardContent className="p-6 h-full flex flex-col justify-between">
                       <div className="flex items-center justify-between">
                         <div>
@@ -191,7 +191,7 @@ export function StatsCards({ assignmentStats, courseStats, weeklyHours, currentD
                 </div>
 
                 {/* Back Face - WHITE TAROT STYLE */}
-                <div className="absolute inset-0 h-full w-full rounded-xl bg-card text-card-foreground p-5 rotate-x-180 backface-hidden border border-border shadow-xl flex flex-col items-center justify-center relative group overflow-hidden">
+                <div className="absolute inset-0 h-full w-full rounded-xl bg-card text-card-foreground p-5 rotate-x-180 backface-hidden border border-border dark:border-white/20 shadow-xl flex flex-col items-center justify-center relative group overflow-hidden">
                   <MagneticBorder />
                   <div className="absolute top-3 left-0 w-full flex justify-center opacity-10 pointer-events-none">
                     <stat.icon className="w-24 h-24" />
