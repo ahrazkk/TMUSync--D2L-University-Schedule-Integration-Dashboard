@@ -6,7 +6,7 @@ import { Timer, Target, BookOpen, BarChart3 } from "lucide-react"
 export function QuickActions() {
   return (
     <div className="space-y-4">
-      <Card>
+      <Card hoverable>
         <CardHeader className="pb-4">
           <CardTitle className="text-lg font-semibold">Quick Actions</CardTitle>
         </CardHeader>
@@ -37,7 +37,7 @@ export function QuickActions() {
         </CardContent>
       </Card>
 
-      <Card>
+      <Card hoverable>
         <CardHeader className="pb-4">
           <CardTitle className="text-lg font-semibold">Weekly Progress</CardTitle>
         </CardHeader>

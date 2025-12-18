@@ -12,8 +12,8 @@ export async function middleware(request: NextRequest) {
   // Debug logging
   console.log(`[Middleware] ${pathname} - isLoggedIn: ${isLoggedIn}, username: ${session.username}`)
 
-  // Allow access to login page and setup page for unauthenticated users
-  const publicPaths = ['/login', '/setup'];
+  // Allow access to login page, signup page, and setup page for unauthenticated users
+  const publicPaths = ['/login', '/signup', '/setup'];
   const isPublicPath = publicPaths.includes(pathname);
 
   // If user is not logged in and trying to access a protected route
@@ -22,9 +22,9 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(new URL('/login', request.url));
   }
 
-  // If user is logged in and trying to visit login page, redirect to dashboard
-  if (isLoggedIn && pathname === '/login') {
-    console.log(`[Middleware] Redirecting /login to / - already logged in`)
+  // If user is logged in and trying to visit login or signup page, redirect to dashboard
+  if (isLoggedIn && (pathname === '/login' || pathname === '/signup')) {
+    console.log(`[Middleware] Redirecting ${pathname} to / - already logged in`)
     return NextResponse.redirect(new URL('/', request.url));
   }
 

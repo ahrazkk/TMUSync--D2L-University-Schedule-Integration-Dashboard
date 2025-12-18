@@ -21,9 +21,9 @@ const getEventGridRows = (startTime: string, durationHours: number) => {
   const start = dayjs(startTime, "h:mm A");
   const base = dayjs("8:00 AM", "h:mm A");
   const diffInMinutes = start.diff(base, 'minute');
-  
+
   // +1 for header, +1 for all-day row
-  const startRow = (diffInMinutes / 30) + 3; 
+  const startRow = (diffInMinutes / 30) + 3;
   const durationInRows = durationHours * 2;
 
   return {
@@ -31,14 +31,15 @@ const getEventGridRows = (startTime: string, durationHours: number) => {
   }
 }
 
+// Enhanced solid colors for current day events with glass effect
 const eventColors = [
-  "bg-blue-500/20 border border-blue-700 text-blue-800 dark:bg-blue-500/30 dark:border-blue-500 dark:text-blue-200",
-  "bg-emerald-500/20 border border-emerald-700 text-emerald-800 dark:bg-emerald-500/30 dark:border-emerald-500 dark:text-emerald-200",
-  "bg-amber-500/20 border border-amber-700 text-amber-800 dark:bg-amber-500/30 dark:border-amber-500 dark:text-amber-200",
-  "bg-violet-500/20 border border-violet-700 text-violet-800 dark:bg-violet-500/30 dark:border-violet-500 dark:text-violet-200",
-  "bg-rose-500/20 border border-rose-700 text-rose-800 dark:bg-rose-500/30 dark:border-rose-500 dark:text-rose-200",
-  "bg-sky-500/20 border border-sky-700 text-sky-800 dark:bg-sky-500/30 dark:border-sky-500 dark:text-sky-200",
-  "bg-red-500/20 border border-red-700 text-red-800 dark:bg-red-500/30 dark:border-red-500 dark:text-red-200",
+  "bg-blue-500/20 border border-blue-500/30 text-blue-800 dark:bg-blue-500/10 dark:text-blue-200 backdrop-blur-sm shadow-sm",
+  "bg-emerald-500/20 border border-emerald-500/30 text-emerald-800 dark:bg-emerald-500/10 dark:text-emerald-200 backdrop-blur-sm shadow-sm",
+  "bg-amber-500/20 border border-amber-500/30 text-amber-800 dark:bg-amber-500/10 dark:text-amber-200 backdrop-blur-sm shadow-sm",
+  "bg-violet-500/20 border border-violet-500/30 text-violet-800 dark:bg-violet-500/10 dark:text-violet-200 backdrop-blur-sm shadow-sm",
+  "bg-rose-500/20 border border-rose-500/30 text-rose-800 dark:bg-rose-500/10 dark:text-rose-200 backdrop-blur-sm shadow-sm",
+  "bg-sky-500/20 border border-sky-500/30 text-sky-800 dark:bg-sky-500/10 dark:text-sky-200 backdrop-blur-sm shadow-sm",
+  "bg-red-500/20 border border-red-500/30 text-red-800 dark:bg-red-500/10 dark:text-red-200 backdrop-blur-sm shadow-sm",
 ];
 
 // Enhanced solid colors for current day events
@@ -68,7 +69,7 @@ const getCourseColor = (courseName: string, isFirstRender: boolean, isCurrentDay
     courseColorMap.set(courseName, eventColors[colorIndex % eventColors.length]);
     colorIndex++;
   }
-  
+
   // Return enhanced color for current day, regular color otherwise
   const baseColorIndex = eventColors.indexOf(courseColorMap.get(courseName)!);
   return isCurrentDay ? eventColorsEnhanced[baseColorIndex] : courseColorMap.get(courseName);
@@ -78,37 +79,37 @@ const getCourseColor = (courseName: string, isFirstRender: boolean, isCurrentDay
 const getEventLayout = (events: CalendarEvent[], currentDate: dayjs.Dayjs) => {
   const startOfWeek = currentDate.startOf('week');
   const endOfWeek = currentDate.endOf('week');
-  
+
   // Group events by day and time slot
   const eventsByDayAndTime: { [key: string]: (CalendarEvent & { originalIndex: number })[] } = {};
-  
+
   events.forEach((event, index) => {
     let dayIndex: number;
     let timeSlot: string;
-    
+
     if (event.type === 'class' && event.day && event.startTime) {
       dayIndex = event.day;
       timeSlot = event.startTime;
     } else if (event.type === 'assignment' && event.dueDate) {
       const eventDate = dayjs(event.dueDate);
       if (!eventDate.isBetween(startOfWeek, endOfWeek, 'day', '[]')) return;
-      
+
       dayIndex = eventDate.day() + 1; // Adjust for Sunday = 0 to Sunday = 1
       timeSlot = eventDate.format('h:mm A');
     } else {
       return;
     }
-    
+
     const key = `${dayIndex}-${timeSlot}`;
     if (!eventsByDayAndTime[key]) {
       eventsByDayAndTime[key] = [];
     }
     eventsByDayAndTime[key].push({ ...event, originalIndex: index });
   });
-  
+
   // Calculate layout for each event
   const eventLayouts: { [key: number]: { width: string; left: string; zIndex: number } } = {};
-  
+
   Object.values(eventsByDayAndTime).forEach(overlappingEvents => {
     const count = overlappingEvents.length;
     overlappingEvents.forEach((event, subIndex) => {
@@ -120,7 +121,7 @@ const getEventLayout = (events: CalendarEvent[], currentDate: dayjs.Dayjs) => {
       };
     });
   });
-  
+
   return eventLayouts;
 };
 
@@ -139,21 +140,40 @@ interface WeeklyCalendarProps {
   events: CalendarEvent[];
   onCourseClick?: (courseDetails: any) => void;
   onAssignmentClick?: (assignment: any) => void;
+  currentDate?: dayjs.Dayjs;
+  onDateChange?: (date: dayjs.Dayjs) => void;
 }
 
-export function WeeklyCalendar({ events = [], onCourseClick, onAssignmentClick }: WeeklyCalendarProps) {
-  const [currentDate, setCurrentDate] = useState(dayjs());
+export function WeeklyCalendar({
+  events = [],
+  onCourseClick,
+  onAssignmentClick,
+  currentDate: externalDate,
+  onDateChange
+}: WeeklyCalendarProps) {
+  const [internalDate, setInternalDate] = useState(dayjs());
+  // Use external date if provided, otherwise internal
+  const currentDate = externalDate || internalDate;
+
+  const handleDateChange = (newDate: dayjs.Dayjs) => {
+    if (onDateChange) {
+      onDateChange(newDate);
+    } else {
+      setInternalDate(newDate);
+    }
+  };
+
   const [isMobileScreen, setIsMobileScreen] = useState(false);
   const [isListView, setIsListView] = useState(false);
   const [hasInitializedView, setHasInitializedView] = useState(false);
   const today = dayjs().day();
-  
+
   // Detect mobile screen size
   useEffect(() => {
     const checkMobile = () => {
       const isMobile = window.innerWidth < 768; // md breakpoint
       setIsMobileScreen(isMobile);
-      
+
       // Auto-enable list view on mobile screens only on initial load
       if (isMobile && !hasInitializedView) {
         setIsListView(true);
@@ -162,24 +182,24 @@ export function WeeklyCalendar({ events = [], onCourseClick, onAssignmentClick }
         setHasInitializedView(true);
       }
     };
-    
+
     checkMobile();
     window.addEventListener('resize', checkMobile);
     return () => window.removeEventListener('resize', checkMobile);
   }, [hasInitializedView]);
 
   const handlePreviousWeek = () => {
-    setCurrentDate(currentDate.subtract(1, 'week'));
+    handleDateChange(currentDate.subtract(1, 'week'));
   };
 
   const handleNextWeek = () => {
-    setCurrentDate(currentDate.add(1, 'week'));
+    handleDateChange(currentDate.add(1, 'week'));
   };
 
   const handleToday = () => {
-    setCurrentDate(dayjs());
+    handleDateChange(dayjs());
   };
-  
+
   const startOfWeek = currentDate.startOf('week');
   const endOfWeek = currentDate.endOf('week');
   const formattedDateRange = `${startOfWeek.format('MMM D')} - ${endOfWeek.format('MMM D, YYYY')}`;
@@ -190,6 +210,11 @@ export function WeeklyCalendar({ events = [], onCourseClick, onAssignmentClick }
   // Toggle between list and calendar view
   const toggleView = () => {
     setIsListView(!isListView);
+  };
+
+  // Helper for transparency
+  const getEventOpacity = (event: any) => {
+    return event.hidden ? 'opacity-40 hover:opacity-100' : 'opacity-100';
   };
 
   // List view: Simple list view for today and upcoming events
@@ -205,7 +230,7 @@ export function WeeklyCalendar({ events = [], onCourseClick, onAssignmentClick }
       }
       return false;
     });
-    
+
     const upcomingEvents = events.filter(event => {
       if (event.type === 'assignment' && event.dueDate) {
         const eventDate = dayjs(event.dueDate);
@@ -224,9 +249,9 @@ export function WeeklyCalendar({ events = [], onCourseClick, onAssignmentClick }
             )}>
               Schedule
             </CardTitle>
-            <Button 
-              variant="outline" 
-              size="sm" 
+            <Button
+              variant="outline"
+              size="sm"
               onClick={toggleView}
               className={cn(
                 "gap-2",
@@ -260,16 +285,18 @@ export function WeeklyCalendar({ events = [], onCourseClick, onAssignmentClick }
               {todayEvents.length > 0 ? (
                 todayEvents.map((event, index) => {
                   const isClass = event.type === 'class';
-                  const color = isClass 
+                  const color = isClass
                     ? getCourseColor(event.courseName, index === 0, true)
                     : "bg-slate-900/70 text-slate-100 border border-slate-600 dark:bg-slate-950/80 dark:text-slate-200 dark:border-slate-400";
-                    
+
                   return (
                     <div
                       key={`${event.title}-${index}`}
                       className={cn(
                         "rounded-lg p-3 border cursor-pointer hover:brightness-110 transition-all",
-                        color
+                        color,
+                        // @ts-ignore - Check for hidden property
+                        event.hidden ? 'opacity-50' : ''
                       )}
                       onClick={() => {
                         if (isClass && onCourseClick) {
@@ -298,7 +325,7 @@ export function WeeklyCalendar({ events = [], onCourseClick, onAssignmentClick }
               )}
             </div>
           </div>
-          
+
           {/* Upcoming Assignments */}
           {upcomingEvents.length > 0 && (
             <div>
@@ -328,19 +355,19 @@ export function WeeklyCalendar({ events = [], onCourseClick, onAssignmentClick }
   }
 
   return (
-    <Card className="h-fit">
+    <Card className="h-fit" hoverable>
       <CardHeader className="pb-4">
         <div className="flex items-center justify-between">
           <CardTitle className={cn(
-            "font-semibold",
-            isMobileScreen ? "text-base" : "text-xl"
+            "font-serif font-bold tracking-tight",
+            isMobileScreen ? "text-lg" : "text-2xl"
           )}>
             Your Enrolled Schedule
           </CardTitle>
           <div className="flex items-center gap-2">
-            <Button 
-              variant="outline" 
-              size="sm" 
+            <Button
+              variant="outline"
+              size="sm"
               onClick={toggleView}
               className={cn(
                 "gap-2",
@@ -375,35 +402,35 @@ export function WeeklyCalendar({ events = [], onCourseClick, onAssignmentClick }
         <div className="grid grid-cols-[4rem_repeat(7,1fr)] grid-rows-[auto_auto_repeat(32,20px)]">
           <div className="sticky top-0 z-20 bg-card"></div>
           {days.map((day, index) => (
-            <div 
-              key={day} 
+            <div
+              key={day}
               className={cn(
-                "sticky top-0 z-20 bg-card text-sm font-medium text-center p-2 text-muted-foreground border-b",
-                dayjs().isSame(currentDate, 'week') && index === today && "bg-gray-100 dark:bg-gray-800"
+                "sticky top-0 z-20 bg-card/80 backdrop-blur-md text-xs font-serif font-bold uppercase tracking-widest text-center p-2 text-muted-foreground border-b",
+                dayjs().isSame(currentDate, 'week') && index === today && "bg-blue-50/50 dark:bg-blue-900/20 text-primary"
               )}
             >
               {day.slice(0, 3)}
             </div>
           ))}
-          
+
           <div className="row-start-2 col-start-1 text-xs font-medium text-muted-foreground p-1 text-right pr-2 z-10 sticky top-12 bg-card border-b border-r">All-Day</div>
           {days.map((day, index) => (
-             <div 
-               key={`${day}-allday`} 
-               className={cn(
-                 "row-start-2 border-b border-r border-border/50 p-1 space-y-1",
-                 dayjs().isSame(currentDate, 'week') && index === today && "bg-blue-100/50 dark:bg-blue-950/40"
-               )}
-               style={{ gridColumnStart: index + 2 }}
-             ></div>
+            <div
+              key={`${day}-allday`}
+              className={cn(
+                "row-start-2 border-b border-r border-border/50 p-1 space-y-1",
+                dayjs().isSame(currentDate, 'week') && index === today && "bg-blue-100/50 dark:bg-blue-950/40"
+              )}
+              style={{ gridColumnStart: index + 2 }}
+            ></div>
           ))}
 
           {timeSlotsWithExtraRows.map((time, index) => (
             <div key={time} className="row-start-auto col-start-1 col-end-10 grid grid-cols-subgrid -mt-px" style={{ gridRowStart: index * 2 + 3 }}>
               <div className="text-xs text-muted-foreground p-1 text-right pr-2 z-10 sticky top-12 bg-card">{time}</div>
               {days.map((day, dayIndex) => (
-                <div 
-                  key={`${day}-cell-${time}`} 
+                <div
+                  key={`${day}-cell-${time}`}
                   className={cn(
                     "border-t border-r border-border/50",
                     dayjs().isSame(currentDate, 'week') && dayIndex === today && "bg-blue-100/50 dark:bg-blue-950/40"
@@ -412,14 +439,19 @@ export function WeeklyCalendar({ events = [], onCourseClick, onAssignmentClick }
               ))}
             </div>
           ))}
-          
+
           {/* --- MODIFIED RENDER LOGIC --- */}
-          {events.map((event, index) => {
+          {events.map((event: any, index) => {
             // Only render events that are in the current visible week
             const eventDate = event.dueDate ? dayjs(event.dueDate) : null;
             if (event.type === 'assignment' && eventDate && !eventDate.isBetween(startOfWeek, endOfWeek, 'day', '[]')) {
               return null;
             }
+
+            // Apply transparency for hidden events
+            const opacityClass = event.hidden
+              ? "opacity-30 hover:opacity-100 grayscale"
+              : "opacity-100";
 
             // A. Handle CLASS events
             if (event.type === 'class' && event.day && event.startTime && event.duration) {
@@ -428,13 +460,13 @@ export function WeeklyCalendar({ events = [], onCourseClick, onAssignmentClick }
               const isCurrentDay = dayjs().isSame(currentDate, 'week') && (event.day - 1) === today;
               const colorClass = getCourseColor(event.courseName, index === 0 && !isRenderClearing, isCurrentDay);
               const layout = eventLayouts[index] || { width: '100%', left: '0%', zIndex: 10 };
-              
+
               return (
                 <div
                   key={uniqueKey}
-                  className={cn("relative rounded text-xs p-1 m-1 font-medium overflow-hidden flex items-start justify-start cursor-pointer hover:brightness-110 transition-all", colorClass)}
-                  style={{ 
-                    gridColumnStart: event.day + 1, 
+                  className={cn("relative rounded text-xs p-1 m-1 font-medium overflow-hidden flex items-start justify-start cursor-pointer transition-all", colorClass, opacityClass)}
+                  style={{
+                    gridColumnStart: event.day + 1,
                     gridRow: gridRow,
                     width: layout.width === '100%' ? 'auto' : layout.width,
                     marginLeft: layout.left !== '0%' ? layout.left : '0px',
@@ -463,12 +495,12 @@ export function WeeklyCalendar({ events = [], onCourseClick, onAssignmentClick }
               const isAllDay = eventDate.hour() === 0 && eventDate.minute() === 0;
               const layout = eventLayouts[index] || { width: '100%', left: '0%', zIndex: 10 };
               const isCurrentDay = dayjs().isSame(currentDate, 'week') && dayIndex === today;
-              
+
               // Check if assignment time is outside 8 AM - 9 PM bounds
               const assignmentHour = eventDate.hour();
               const isEarlyMorning = assignmentHour < 8;
               const isLateEvening = assignmentHour >= 21; // 9 PM = 21 in 24-hour
-              
+
               let gridRowValue;
               if (isAllDay) {
                 gridRowValue = '2 / span 1'; // All-day row
@@ -481,7 +513,7 @@ export function WeeklyCalendar({ events = [], onCourseClick, onAssignmentClick }
               }
 
               // Enhanced assignment colors for current day
-              const assignmentColorClass = isCurrentDay 
+              const assignmentColorClass = isCurrentDay
                 ? "relative rounded bg-slate-900/70 text-slate-100 border border-slate-600 text-xs p-1 m-1 font-medium overflow-hidden flex items-start justify-start gap-1 cursor-pointer hover:brightness-110 transition-all dark:bg-slate-950/80 dark:text-slate-200 dark:border-slate-400"
                 : "relative rounded bg-slate-900/40 text-slate-200 border border-slate-700/50 text-xs p-1 m-1 font-medium overflow-hidden flex items-start justify-start gap-1 cursor-pointer hover:brightness-110 transition-all dark:bg-slate-950/50 dark:text-slate-300 dark:border-slate-600/40";
 
@@ -508,11 +540,11 @@ export function WeeklyCalendar({ events = [], onCourseClick, onAssignmentClick }
                 </div>
               )
             }
-            
+
             return null;
           })}
         </div>
       </CardContent>
-    </Card>
+    </Card >
   )
 }

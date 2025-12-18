@@ -1,10 +1,31 @@
 import { useState, useEffect } from "react"
+import { MagneticBorder } from "@/components/ui/magnetic-border"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { Clock, CheckCircle, AlertCircle, Plus, Eye, EyeOff, RotateCcw } from "lucide-react"
+import { Clock, CheckCircle, AlertCircle, Eye, EyeOff, RotateCcw } from "lucide-react"
 import dayjs from 'dayjs'
 import { cn } from "@/lib/utils"
+import { AddAssignmentModal } from "@/components/add-assignment-modal"
+
+// Course color map for due date badges
+const COURSE_COLORS: Record<string, string> = {
+  'CPS': 'bg-blue-500/20 text-blue-700 dark:text-blue-300',
+  'MTH': 'bg-purple-500/20 text-purple-700 dark:text-purple-300',
+  'PHL': 'bg-amber-500/20 text-amber-700 dark:text-amber-300',
+  'ENG': 'bg-green-500/20 text-green-700 dark:text-green-300',
+  'CMN': 'bg-cyan-500/20 text-cyan-700 dark:text-cyan-300',
+  'default': 'bg-red-500/20 text-red-700 dark:text-red-300', // Glassy red for unlinked
+};
+
+function getDueDateColor(courseCode?: string): string {
+  if (!courseCode || courseCode === 'General') {
+    return COURSE_COLORS.default;
+  }
+  // Get first 3 letters of course code to match department
+  const dept = courseCode.substring(0, 3).toUpperCase();
+  return COURSE_COLORS[dept] || COURSE_COLORS.default;
+}
 
 interface Assignment {
   title: string;
@@ -37,18 +58,22 @@ interface AssignmentsPanelProps {
   isAssignmentCompleted?: (assignment: Assignment) => boolean;
   markAssignmentAsComplete?: (assignment: Assignment) => void;
   markAssignmentAsIncomplete?: (assignment: Assignment) => void;
+  onAssignmentClick?: (assignment: any) => void;
+  onAssignmentAdded?: () => void;
 }
 
-export function AssignmentsPanel({ 
-  upcoming = [], 
-  finished = [], 
+export function AssignmentsPanel({
+  upcoming = [],
+  finished = [],
   onStatsChange,
   isAssignmentCompleted,
   markAssignmentAsComplete,
-  markAssignmentAsIncomplete
+  markAssignmentAsIncomplete,
+  onAssignmentClick,
+  onAssignmentAdded
 }: AssignmentsPanelProps) {
   console.log("AssignmentsPanel received props:", { upcoming: upcoming.length, finished: finished.length });
-  
+
   const [showAllUpcoming, setShowAllUpcoming] = useState(false);
   const [localCompletedAssignments, setLocalCompletedAssignments] = useState<FinishedAssignment[]>([]);
   const [isMobileView, setIsMobileView] = useState(false);
@@ -58,7 +83,7 @@ export function AssignmentsPanel({
     const checkMobile = () => {
       setIsMobileView(window.innerWidth < 768); // md breakpoint
     };
-    
+
     checkMobile();
     window.addEventListener('resize', checkMobile);
     return () => window.removeEventListener('resize', checkMobile);
@@ -105,6 +130,8 @@ export function AssignmentsPanel({
     }
   }, [localCompletedAssignments]);
 
+  const [exitingIds, setExitingIds] = useState<string[]>([]);
+
   // Create unique ID for assignment
   const getAssignmentId = (assignment: Assignment) => {
     const id = `${assignment.title}-${assignment.course}-${assignment.dueDate}`;
@@ -114,23 +141,33 @@ export function AssignmentsPanel({
   // Handle marking assignment as complete
   const markAsComplete = (assignment: Assignment) => {
     console.log('Marking assignment as complete:', assignment.title);
-    
+
     if (markAssignmentAsComplete && !isAssignmentCompleted?.(assignment)) {
-      // Use the parent's function to mark as complete
-      markAssignmentAsComplete(assignment);
-      
-      // Create completed assignment for local display
-      const completedAssignment: FinishedAssignment = {
-        title: assignment.title,
-        course: assignment.course,
-        completedDate: dayjs().format('MMM D, YYYY'),
-        grade: 'Completed'
-      };
-      
-      // Add to local completed assignments for display
-      setLocalCompletedAssignments(prev => [completedAssignment, ...prev]);
-      
-      console.log('Assignment marked complete via parent function');
+      // 1. Trigger exit animation
+      const id = getAssignmentId(assignment);
+      setExitingIds(prev => [...prev, id]);
+
+      // 2. Wait for animation then update data
+      setTimeout(() => {
+        // Use the parent's function to mark as complete
+        markAssignmentAsComplete(assignment);
+
+        // Create completed assignment for local display
+        const completedAssignment: FinishedAssignment = {
+          title: assignment.title,
+          course: assignment.course,
+          completedDate: dayjs().format('MMM D, YYYY'),
+          grade: 'Completed'
+        };
+
+        // Add to local completed assignments for display
+        setLocalCompletedAssignments(prev => [completedAssignment, ...prev]);
+
+        // Clear from exiting list
+        setExitingIds(prev => prev.filter(eid => eid !== id));
+
+        console.log('Assignment marked complete via parent function');
+      }, 500); // Wait 500ms for animation
     } else {
       console.log('Assignment already completed or no completion function available');
     }
@@ -139,42 +176,42 @@ export function AssignmentsPanel({
   // Handle moving assignment back to upcoming
   const moveBackToUpcoming = (completedAssignment: FinishedAssignment, index: number) => {
     // Find the original assignment to get the ID
-    const originalAssignment = upcoming.find(a => 
-      a.title === completedAssignment.title && 
+    const originalAssignment = upcoming.find(a =>
+      a.title === completedAssignment.title &&
       a.course === completedAssignment.course
     );
-    
+
     if (originalAssignment && markAssignmentAsIncomplete) {
       // Use the parent's function to mark as incomplete
       markAssignmentAsIncomplete(originalAssignment);
-      
+
       // Remove from local completed assignments
       setLocalCompletedAssignments(prev => prev.filter((_, i) => i !== index));
     }
   };
 
   // Filter out completed assignments from upcoming
-  const remainingAssignments = upcoming.filter(assignment => 
+  const remainingAssignments = upcoming.filter(assignment =>
     !isAssignmentCompleted?.(assignment)
   );
-  
+
   // Use original finished assignments - completed assignments are now filtered from upcoming
   const allCompletedAssignments = finished;
-  
+
   // Filter assignments within next 2 weeks
   const twoWeeksFromNow = dayjs().add(2, 'weeks');
-  const upcomingWithinTwoWeeks = remainingAssignments.filter(assignment => 
+  const upcomingWithinTwoWeeks = remainingAssignments.filter(assignment =>
     dayjs(assignment.dueDate).isBefore(twoWeeksFromNow)
   );
-  const upcomingBeyondTwoWeeks = remainingAssignments.filter(assignment => 
+  const upcomingBeyondTwoWeeks = remainingAssignments.filter(assignment =>
     dayjs(assignment.dueDate).isAfter(twoWeeksFromNow) || dayjs(assignment.dueDate).isSame(twoWeeksFromNow)
   );
-  
+
   const displayedUpcoming = showAllUpcoming ? remainingAssignments : upcomingWithinTwoWeeks;
-  
+
   // Calculate completion stats based on current view using parent's completion state
   const totalCompletedCount = upcoming.filter(assignment => isAssignmentCompleted?.(assignment)).length;
-  
+
   // Dynamic stats based on current view (2-week vs all assignments)
   if (showAllUpcoming) {
     // When showing all assignments, use all data
@@ -183,17 +220,17 @@ export function AssignmentsPanel({
   } else {
     // When showing 2-week view, count only assignments within 2 weeks
     const twoWeeksFromNow = dayjs().add(2, 'weeks');
-    
+
     // Count assignments within 2 weeks (both completed and remaining)
-    const assignmentsWithinTwoWeeks = upcoming.filter(assignment => 
+    const assignmentsWithinTwoWeeks = upcoming.filter(assignment =>
       dayjs(assignment.dueDate).isBefore(twoWeeksFromNow)
     );
-    
+
     // Count completed assignments within 2 weeks using parent's completion check
-    const completedWithinTwoWeeks = assignmentsWithinTwoWeeks.filter(assignment => 
+    const completedWithinTwoWeeks = assignmentsWithinTwoWeeks.filter(assignment =>
       isAssignmentCompleted?.(assignment)
     ).length;
-    
+
     var currentViewTotalAssignments = assignmentsWithinTwoWeeks.length; // Total assignments within 2 weeks
     var currentViewCompletedCount = completedWithinTwoWeeks;
   }
@@ -211,7 +248,7 @@ export function AssignmentsPanel({
 
   return (
     <div className="space-y-4">
-      <Card>
+      <Card hoverable>
         <CardHeader className="pb-4">
           <div className={cn(
             "flex items-center justify-between",
@@ -235,8 +272,8 @@ export function AssignmentsPanel({
               isMobileView && "w-full justify-between"
             )}>
               {upcomingBeyondTwoWeeks.length > 0 && (
-                <Button 
-                  variant="ghost" 
+                <Button
+                  variant="ghost"
                   size="sm"
                   onClick={() => setShowAllUpcoming(!showAllUpcoming)}
                   className={cn(
@@ -257,10 +294,14 @@ export function AssignmentsPanel({
                   )}
                 </Button>
               )}
-              <Button variant="outline" size="sm" className={cn(isMobileView && "flex-1")}>
-                <Plus className="w-4 h-4 mr-2" />
-                Add
-              </Button>
+              <AddAssignmentModal
+                trigger={
+                  <Button variant="outline" size="sm" className={cn(isMobileView && "flex-1")}>
+                    Add
+                  </Button>
+                }
+                onSuccess={onAssignmentAdded}
+              />
             </div>
           </div>
         </CardHeader>
@@ -268,13 +309,16 @@ export function AssignmentsPanel({
           {displayedUpcoming.length > 0 ? displayedUpcoming.map((assignment, index) => (
             <div
               key={index}
+              onClick={() => onAssignmentClick?.(assignment)}
               className={cn(
-                "rounded-lg border border-border hover:bg-muted/50 transition-colors",
-                isMobileView 
-                  ? "p-4 space-y-3" 
+                "rounded-lg border border-border hover:bg-muted/50 transition-all duration-500 cursor-pointer relative group overflow-hidden",
+                exitingIds.includes(getAssignmentId(assignment)) && "opacity-0 translate-x-10 pointer-events-none scale-95",
+                isMobileView
+                  ? "p-4 space-y-3"
                   : "flex items-start gap-3 p-3"
               )}
             >
+              <MagneticBorder />
               {/* Mobile Layout */}
               {isMobileView ? (
                 <>
@@ -308,15 +352,14 @@ export function AssignmentsPanel({
 
                   {/* Course info */}
                   <div className="flex items-center gap-2 flex-wrap">
-                    <Badge 
-                      variant="outline" 
-                      className={`text-xs ${
-                        assignment.matchedToVSB 
-                          ? 'border-blue-500 text-blue-700 dark:text-blue-400' 
-                          : assignment.matchedFromICS 
-                            ? 'border-green-500 text-green-700 dark:text-green-400' 
-                            : 'border-gray-500 text-gray-700 dark:text-gray-400'
-                      }`}
+                    <Badge
+                      variant="outline"
+                      className={`text-xs ${assignment.matchedToVSB
+                        ? 'border-blue-500 text-blue-700 dark:text-blue-400'
+                        : assignment.matchedFromICS
+                          ? 'border-green-500 text-green-700 dark:text-green-400'
+                          : 'border-gray-500 text-gray-700 dark:text-gray-400'
+                        }`}
                     >
                       {assignment.course}
                     </Badge>
@@ -344,14 +387,20 @@ export function AssignmentsPanel({
 
                   {/* Due date and actions */}
                   <div className="flex items-center justify-between gap-3">
-                    <p className="text-xs text-muted-foreground">
+                    <span className={cn(
+                      "text-xs px-2 py-0.5 rounded-md inline-block",
+                      getDueDateColor(assignment.course)
+                    )}>
                       Due: {dayjs(assignment.dueDate).format('MMM D, h:mm A')}
-                    </p>
+                    </span>
                     <div className="flex items-center gap-2">
                       <Button
                         variant="ghost"
                         size="sm"
-                        onClick={() => markAsComplete(assignment)}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          markAsComplete(assignment);
+                        }}
                         className="h-8 w-8 p-0 hover:bg-primary/10"
                         title="Mark as complete"
                       >
@@ -361,7 +410,10 @@ export function AssignmentsPanel({
                         <Button
                           variant="ghost"
                           size="sm"
-                          onClick={() => window.open(assignment.d2lUrl, '_blank')}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            window.open(assignment.d2lUrl, '_blank');
+                          }}
                           className="h-8 w-8 p-0 hover:bg-primary/10"
                           title="Open in D2L"
                         >
@@ -387,15 +439,14 @@ export function AssignmentsPanel({
                   <div className="flex-1 min-w-0">
                     <h4 className="font-medium text-sm text-foreground">{assignment.title}</h4>
                     <div className="flex items-center gap-2 mt-1">
-                      <Badge 
-                        variant="outline" 
-                        className={`text-xs ${
-                          assignment.matchedToVSB 
-                            ? 'border-blue-500 text-blue-700 dark:text-blue-400' 
-                            : assignment.matchedFromICS 
-                              ? 'border-green-500 text-green-700 dark:text-green-400' 
-                              : 'border-gray-500 text-gray-700 dark:text-gray-400'
-                        }`}
+                      <Badge
+                        variant="outline"
+                        className={`text-xs ${assignment.matchedToVSB
+                          ? 'border-blue-500 text-blue-700 dark:text-blue-400'
+                          : assignment.matchedFromICS
+                            ? 'border-green-500 text-green-700 dark:text-green-400'
+                            : 'border-gray-500 text-gray-700 dark:text-gray-400'
+                          }`}
                       >
                         {assignment.course}
                       </Badge>
@@ -416,9 +467,12 @@ export function AssignmentsPanel({
                         {assignment.description.substring(0, 100)}...
                       </p>
                     )}
-                    <p className="text-xs text-muted-foreground mt-1">
+                    <span className={cn(
+                      "text-xs px-2 py-0.5 rounded-md inline-block mt-1",
+                      getDueDateColor(assignment.course)
+                    )}>
                       Due: {dayjs(assignment.dueDate).format('MMM D, h:mm A')}
-                    </p>
+                    </span>
                   </div>
                   <div className="flex items-center gap-2">
                     <Badge
@@ -435,7 +489,10 @@ export function AssignmentsPanel({
                     <Button
                       variant="ghost"
                       size="sm"
-                      onClick={() => markAsComplete(assignment)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        markAsComplete(assignment);
+                      }}
                       className="h-6 w-6 p-0 hover:bg-primary/10"
                       title="Mark as complete"
                     >
@@ -445,7 +502,10 @@ export function AssignmentsPanel({
                       <Button
                         variant="ghost"
                         size="sm"
-                        onClick={() => window.open(assignment.d2lUrl, '_blank')}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          window.open(assignment.d2lUrl, '_blank');
+                        }}
                         className="h-6 w-6 p-0 hover:bg-primary/10"
                         title="Open in D2L"
                       >
@@ -467,7 +527,7 @@ export function AssignmentsPanel({
         </CardContent>
       </Card>
 
-      <Card>
+      <Card hoverable>
         <CardHeader className="pb-4">
           <div className={cn(
             "flex items-center justify-between",
@@ -495,15 +555,16 @@ export function AssignmentsPanel({
         </CardHeader>
         <CardContent className="space-y-3">
           {allCompletedAssignments.length > 0 ? allCompletedAssignments.map((assignment, index) => (
-            <div 
-              key={index} 
+            <div
+              key={index}
               className={cn(
-                "rounded-lg border border-border",
-                isMobileView 
-                  ? "p-4 space-y-3" 
+                "rounded-lg border border-border relative group overflow-hidden",
+                isMobileView
+                  ? "p-4 space-y-3"
                   : "flex items-start gap-3 p-3"
               )}
             >
+              <MagneticBorder />
               {isMobileView ? (
                 <>
                   <div className="flex items-start gap-2">
@@ -557,7 +618,7 @@ export function AssignmentsPanel({
               )}
             </div>
           )) : (
-             <p className="text-sm text-muted-foreground text-center py-4">No recently completed assignments.</p>
+            <p className="text-sm text-muted-foreground text-center py-4">No recently completed assignments.</p>
           )}
         </CardContent>
       </Card>

@@ -1,23 +1,117 @@
-"use client"; // This component needs to be a Client Component for interactivity
+"use client";
 
-import { Bell, Search, Settings, LogOut } from "lucide-react";
+import { Bell, Search, Settings, LogOut, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { EnhancedSearch } from "@/components/enhanced-search";
 import { useRouter } from "next/navigation";
+import { useState, useEffect } from "react";
 
-export function DashboardHeader() {
+interface DashboardHeaderProps {
+  firstName?: string;
+  onRefresh?: () => Promise<void>;
+  assignments?: any[];
+  classes?: any[];
+  onAssignmentClick?: (assignment: any) => void;
+  onClassClick?: (classEvent: any) => void;
+}
+
+// Abstract gradient avatar component
+function AbstractAvatar({ name, size = "md" }: { name: string; size?: "sm" | "md" }) {
+  // Generate a consistent gradient based on name
+  const getGradient = (name: string) => {
+    const colors = [
+      ['from-violet-500', 'to-purple-600'],
+      ['from-blue-500', 'to-cyan-500'],
+      ['from-emerald-500', 'to-teal-500'],
+      ['from-orange-500', 'to-red-500'],
+      ['from-pink-500', 'to-rose-500'],
+      ['from-indigo-500', 'to-blue-600'],
+    ];
+    const index = name.charCodeAt(0) % colors.length;
+    return colors[index];
+  };
+
+  const [from, to] = getGradient(name);
+  const initial = name.charAt(0).toUpperCase();
+  const sizeClasses = size === "sm" ? "w-6 h-6 text-xs" : "w-8 h-8 text-sm";
+
+  return (
+    <div
+      className={`${sizeClasses} rounded-full bg-gradient-to-br ${from} ${to} flex items-center justify-center text-white font-semibold shadow-md`}
+    >
+      {initial}
+    </div>
+  );
+}
+
+export function DashboardHeader({
+  firstName,
+  onRefresh,
+  assignments = [],
+  classes = [],
+  onAssignmentClick,
+  onClassClick
+}: DashboardHeaderProps) {
   const router = useRouter();
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [displayName, setDisplayName] = useState<string | null>(null);
 
-  // This function will handle the logout process
+  // Load firstName from props or fetch from API
+  useEffect(() => {
+    if (firstName && firstName !== "there") {
+      setDisplayName(firstName);
+    } else {
+      // Fetch from session/API if not provided
+      async function fetchName() {
+        try {
+          const response = await fetch('/api/user/data', { credentials: 'include' });
+          if (response.ok) {
+            const data = await response.json();
+            if (data.firstName) {
+              setDisplayName(data.firstName);
+            }
+          }
+        } catch (error) {
+          console.log('Could not fetch user name');
+        }
+      }
+      fetchName();
+    }
+  }, [firstName]);
+
+  // Handle logout
   const handleLogout = async () => {
     try {
       await fetch('/api/logout', { method: 'POST' });
-      // Redirect to the login page after a successful logout
       window.location.href = '/login';
     } catch (error) {
       console.error('Failed to log out:', error);
+    }
+  };
+
+  // Handle refresh
+  const handleRefresh = async () => {
+    if (isRefreshing) return;
+
+    setIsRefreshing(true);
+    try {
+      if (onRefresh) {
+        await onRefresh();
+      } else {
+        // Default refresh behavior - call user data POST
+        const response = await fetch('/api/user/data', {
+          method: 'POST',
+          credentials: 'include'
+        });
+        if (response.ok) {
+          window.location.reload();
+        }
+      }
+    } catch (error) {
+      console.error('Failed to refresh data:', error);
+    } finally {
+      setIsRefreshing(false);
     }
   };
 
@@ -26,22 +120,52 @@ export function DashboardHeader() {
     router.push('/settings');
   };
 
+  // Get greeting based on time of day
+  const getGreeting = () => {
+    const hour = new Date().getHours();
+    if (hour < 12) return "Good morning";
+    if (hour < 18) return "Good afternoon";
+    return "Good evening";
+  };
+
+  // Use displayName if available, otherwise show loading indicator or "there"
+  const nameToShow = displayName || "there";
+
   return (
-    <header className="h-14 md:h-16 border-b border-border bg-card px-3 md:px-6 flex items-center justify-between">
+    <header className="h-14 md:h-16 border-b border-border/40 bg-card/80 backdrop-blur-xl px-3 md:px-6 flex items-center justify-between sticky top-0 z-50">
       <div className="flex items-center gap-2 md:gap-4">
-        {/* Hide "Good morning" text on mobile, show abbreviated version on small screens */}
-        <h1 className="text-lg md:text-2xl font-bold text-foreground">
-          <span className="hidden sm:inline">Good morning </span>
-          <span className="sm:hidden">Hi </span>
-          Ahraz!
+        <h1 className="text-lg md:text-3xl font-serif font-bold text-foreground tracking-tight">
+          <span className="hidden sm:inline italic opacity-80">{getGreeting()}, </span>
+          <span className="sm:hidden">Hi, </span>
+          {nameToShow}
         </h1>
       </div>
 
       <div className="flex items-center gap-2 md:gap-4">
-        {/* Hide search on mobile to save space */}
-        <div className="relative hidden md:block">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
-          <Input placeholder="Search courses, assignments..." className="pl-10 w-60 lg:w-80" />
+        {/* Refresh Button - always show */}
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={handleRefresh}
+          disabled={isRefreshing}
+          className="gap-2"
+          title="Refresh data from calendar"
+        >
+          <RefreshCw className={`w-4 h-4 md:w-5 md:h-5 ${isRefreshing ? 'animate-spin' : ''}`} />
+          <span className="hidden md:inline">
+            {isRefreshing ? 'Refreshing...' : 'Refresh'}
+          </span>
+        </Button>
+
+        {/* Enhanced Search - hidden on mobile */}
+        <div className="hidden md:block w-60 lg:w-80">
+          <EnhancedSearch
+            assignments={assignments}
+            classes={classes}
+            onAssignmentClick={onAssignmentClick}
+            onClassClick={onClassClick}
+            onSettingClick={(key) => router.push(`/settings${key ? `?tab=${key}` : ''}`)}
+          />
         </div>
 
         {/* Show search icon only on mobile */}
@@ -74,10 +198,8 @@ export function DashboardHeader() {
           <LogOut className="w-4 h-4" />
         </Button>
 
-        <Avatar className="w-6 h-6 md:w-8 md:h-8">
-          <AvatarImage src="/student-avatar.png" />
-          <AvatarFallback className="text-xs md:text-sm">AH</AvatarFallback>
-        </Avatar>
+        {/* Abstract gradient avatar */}
+        <AbstractAvatar name={nameToShow} size="md" />
       </div>
     </header>
   )

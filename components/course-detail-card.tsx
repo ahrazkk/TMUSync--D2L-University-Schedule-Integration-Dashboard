@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
-import { X, Clock, MapPin, User, Calendar, BookOpen, GraduationCap, FileText, ExternalLink } from "lucide-react"
+import { X, Clock, MapPin, User, Calendar, BookOpen, GraduationCap, FileText, ExternalLink, Pencil } from "lucide-react"
 import { cn } from "@/lib/utils"
 import dayjs from 'dayjs'
 import relativeTime from 'dayjs/plugin/relativeTime'
@@ -59,6 +59,7 @@ interface CourseDetailCardProps {
     completed: Assignment[];
   };
   onClose: () => void;
+  onEdit?: () => void;
   onAssignmentClick?: (assignment: Assignment) => void;
   isAssignmentCompleted?: (assignment: Assignment) => boolean;
   markAssignmentAsComplete?: (assignment: Assignment) => void;
@@ -86,10 +87,11 @@ const getSessionTypeColor = (type: string) => {
   }
 };
 
-export function CourseDetailCard({ 
-  courseDetails, 
-  assignments = { pending: [], completed: [] }, 
-  onClose, 
+export function CourseDetailCard({
+  courseDetails,
+  assignments = { pending: [], completed: [] },
+  onClose,
+  onEdit,
   onAssignmentClick,
   isAssignmentCompleted,
   markAssignmentAsComplete,
@@ -149,16 +151,29 @@ export function CourseDetailCard({
               )}
             </div>
           </div>
-          <Button 
-            variant="ghost" 
-            size="sm" 
-            onClick={onClose}
-            className="text-muted-foreground hover:text-foreground"
-          >
-            <X className="w-4 h-4" />
-          </Button>
+          <div className="flex items-center gap-1">
+            {onEdit && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={onEdit}
+                className="text-muted-foreground hover:text-foreground"
+              >
+                <Pencil className="w-4 h-4 mr-1" />
+                Edit
+              </Button>
+            )}
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={onClose}
+              className="text-muted-foreground hover:text-foreground"
+            >
+              <X className="w-4 h-4" />
+            </Button>
+          </div>
         </div>
-        
+
         <div className="flex gap-1 mt-4">
           <Button
             variant={activeTab === 'overview' ? 'default' : 'ghost'}
@@ -189,7 +204,7 @@ export function CourseDetailCard({
           </Button>
         </div>
       </CardHeader>
-      
+
       <CardContent>
         {activeTab === 'overview' && (
           <div className="space-y-6">
@@ -283,7 +298,7 @@ export function CourseDetailCard({
                         <span className="text-xs">({session.duration}h)</span>
                       </div>
                     </div>
-                    
+
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 text-xs">
                       {session.instructor !== 'TBA' && (
                         <div className="flex items-center gap-1 text-muted-foreground">
@@ -306,7 +321,7 @@ export function CourseDetailCard({
                         </div>
                       )}
                     </div>
-                    
+
                     {session.status && session.status !== 'Active' && session.status !== '' && (
                       <div className="mt-2">
                         <Badge variant="outline" className="text-xs">
@@ -348,13 +363,13 @@ export function CourseDetailCard({
                       const timeUntilDue = dueDate.diff(now);
                       const isOverdue = timeUntilDue < 0;
                       const humanReadableTime = dueDate.fromNow();
-                      
+
                       // Calculate urgency
                       const hoursUntilDue = Math.abs(dueDate.diff(now, 'hour'));
                       const daysUntilDue = Math.abs(dueDate.diff(now, 'day'));
-                      
+
                       let urgencyColor = "bg-green-100 text-green-800 border-green-300 dark:bg-green-900 dark:text-green-200 dark:border-green-700";
-                      
+
                       if (isOverdue) {
                         urgencyColor = "bg-red-100 text-red-800 border-red-300 dark:bg-red-900 dark:text-red-200 dark:border-red-700";
                       } else if (hoursUntilDue <= 24) {
@@ -364,8 +379,8 @@ export function CourseDetailCard({
                       }
 
                       return (
-                        <div 
-                          key={`pending-${index}`} 
+                        <div
+                          key={`pending-${index}`}
                           className="p-3 border rounded-lg hover:bg-muted/50 cursor-pointer transition-colors"
                           onClick={() => onAssignmentClick && onAssignmentClick(assignment)}
                         >
@@ -375,14 +390,14 @@ export function CourseDetailCard({
                               <div className="min-w-0 flex-1">
                                 <h4 className="font-medium text-sm line-clamp-2 break-words">{assignment.title}</h4>
                                 {/* Only show clean description if it's different from title and reasonably short */}
-                                {assignment.description && 
-                                 assignment.description !== assignment.title && 
-                                 assignment.description.length < 100 && 
-                                 !assignment.description.includes('http') && (
-                                  <p className="text-xs text-muted-foreground mt-1 line-clamp-1 break-words">
-                                    {assignment.description}
-                                  </p>
-                                )}
+                                {assignment.description &&
+                                  assignment.description !== assignment.title &&
+                                  assignment.description.length < 100 &&
+                                  !assignment.description.includes('http') && (
+                                    <p className="text-xs text-muted-foreground mt-1 line-clamp-1 break-words">
+                                      {assignment.description}
+                                    </p>
+                                  )}
                               </div>
                             </div>
                             <div className="flex flex-col items-end gap-1 flex-shrink-0">
@@ -396,7 +411,7 @@ export function CourseDetailCard({
                               )}
                             </div>
                           </div>
-                          
+
                           <div className="flex items-center justify-between text-xs text-muted-foreground">
                             <div className="flex items-center gap-3">
                               <span className="font-medium">{dueDate.format('MMM D, YYYY')}</span>
@@ -408,10 +423,10 @@ export function CourseDetailCard({
                               )}
                             </div>
                             <div className="flex items-center gap-2">
-                              <span className={cn("font-medium text-xs", 
-                                isOverdue ? "text-red-600" : 
-                                hoursUntilDue <= 24 ? "text-red-600" : 
-                                daysUntilDue <= 3 ? "text-yellow-600" : "text-green-600"
+                              <span className={cn("font-medium text-xs",
+                                isOverdue ? "text-red-600" :
+                                  hoursUntilDue <= 24 ? "text-red-600" :
+                                    daysUntilDue <= 3 ? "text-yellow-600" : "text-green-600"
                               )}>
                                 {isOverdue ? `Overdue by ${humanReadableTime.replace('ago', '')}` : `Due ${humanReadableTime}`}
                               </span>
@@ -459,8 +474,8 @@ export function CourseDetailCard({
                       const dueDate = dayjs(assignment.dueDate);
 
                       return (
-                        <div 
-                          key={`completed-${index}`} 
+                        <div
+                          key={`completed-${index}`}
                           className="p-3 border rounded-lg bg-green-50 border-green-200 dark:bg-green-950 dark:border-green-800 opacity-75"
                           onClick={() => onAssignmentClick && onAssignmentClick(assignment)}
                         >
@@ -469,14 +484,14 @@ export function CourseDetailCard({
                               <FileText className="w-4 h-4 text-green-600 mt-0.5 flex-shrink-0" />
                               <div className="min-w-0 flex-1">
                                 <h4 className="font-medium text-sm line-clamp-2 break-words line-through text-green-700 dark:text-green-300">{assignment.title}</h4>
-                                {assignment.description && 
-                                 assignment.description !== assignment.title && 
-                                 assignment.description.length < 100 && 
-                                 !assignment.description.includes('http') && (
-                                  <p className="text-xs text-green-600 dark:text-green-400 mt-1 line-clamp-1 break-words">
-                                    {assignment.description}
-                                  </p>
-                                )}
+                                {assignment.description &&
+                                  assignment.description !== assignment.title &&
+                                  assignment.description.length < 100 &&
+                                  !assignment.description.includes('http') && (
+                                    <p className="text-xs text-green-600 dark:text-green-400 mt-1 line-clamp-1 break-words">
+                                      {assignment.description}
+                                    </p>
+                                  )}
                               </div>
                             </div>
                             <div className="flex flex-col items-end gap-1 flex-shrink-0">
@@ -490,7 +505,7 @@ export function CourseDetailCard({
                               )}
                             </div>
                           </div>
-                          
+
                           <div className="flex items-center justify-between text-xs text-green-600 dark:text-green-400">
                             <div className="flex items-center gap-3">
                               <span className="font-medium">{dueDate.format('MMM D, YYYY')}</span>

@@ -12,7 +12,18 @@ export const sessionOptions: SessionOptions = {
 
 export interface SessionData {
   isLoggedIn: boolean;
-  id?: string; // <-- ADD THIS LINE
-  icsUrl?: string; // User's D2L calendar URL
-  username?: string; // VSB username for stable user identification
+
+  // New Firebase-based auth fields
+  userId?: string;       // Firebase UID
+  email?: string;        // User's email
+  firstName?: string;    // User's first name for personalized greeting
+  icsUrls?: string[];    // Multiple ICS URLs (D2L + Google Calendar)
+
+  // Legacy fields (for school login if enabled)
+  id?: string;           // Legacy session ID
+  icsUrl?: string;       // Legacy single ICS URL
+  username?: string;     // VSB username (school login)
+
+  // Feature flag
+  schoolLoginEnabled?: boolean;
 }
