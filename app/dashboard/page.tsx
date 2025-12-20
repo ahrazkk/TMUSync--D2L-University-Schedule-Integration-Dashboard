@@ -15,6 +15,7 @@ import { AssignmentDetailCard } from "@/components/assignment-detail-card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { MobileBottomNav } from "@/components/mobile-bottom-nav";
 import { ClassEditModal, getHiddenClasses } from "@/components/class-edit-modal";
+import { TutorialOverlay } from "@/components/tutorial-overlay";
 import {
   saveAssignmentsWithBindings,
   loadAssignmentsWithBindings,
@@ -59,6 +60,10 @@ export default function DashboardPage() {
   // New: User data from Firebase
   const [firstName, setFirstName] = useState<string>("there");
   const [weeklyClassHours, setWeeklyClassHours] = useState<number>(0);
+
+  // Tutorial state for demo mode
+  const [isDemo, setIsDemo] = useState(false);
+  const [showTutorial, setShowTutorial] = useState(false);
 
   // New: Class Customizations State
   interface ClassCustomization {
@@ -373,6 +378,15 @@ export default function DashboardPage() {
             // Set firstName if available
             if (userData.firstName) {
               setFirstName(userData.firstName);
+
+              // Check if this is demo mode and show tutorial if not seen before
+              if (userData.firstName === 'Demo Student') {
+                setIsDemo(true);
+                const hasSeenTutorial = localStorage.getItem('tmusync-tutorial-completed');
+                if (!hasSeenTutorial) {
+                  setShowTutorial(true);
+                }
+              }
             }
 
             // Process cached data if available
@@ -1159,6 +1173,17 @@ export default function DashboardPage() {
         onSave={handleClassSave}
         onHide={handleClassHide}
       />
+
+      {/* Demo Mode Tutorial Overlay */}
+      {showTutorial && (
+        <TutorialOverlay
+          isDemo={isDemo}
+          onComplete={() => {
+            setShowTutorial(false);
+            localStorage.setItem('tmusync-tutorial-completed', 'true');
+          }}
+        />
+      )}
     </div>
   )
 }
