@@ -5,8 +5,21 @@ import React, { useEffect, useState } from "react";
 export function ChaosOverlay() {
     const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
     const [isHovering, setIsHovering] = useState(false);
+    const [isTouchDevice, setIsTouchDevice] = useState(false);
 
     useEffect(() => {
+        // Detect touch devices using multiple methods for reliability
+        const checkTouchDevice = () => {
+            const hasTouchPoints = 'maxTouchPoints' in navigator && navigator.maxTouchPoints > 0;
+            const hasTouchEvents = 'ontouchstart' in window;
+            const hasCoarsePointer = window.matchMedia('(pointer: coarse)').matches;
+            const hasNoHover = window.matchMedia('(hover: none)').matches;
+
+            return hasTouchPoints || hasTouchEvents || hasCoarsePointer || hasNoHover;
+        };
+
+        setIsTouchDevice(checkTouchDevice());
+
         const handleMouseMove = (e: MouseEvent) => {
             setMousePosition({ x: e.clientX, y: e.clientY });
             setIsHovering(true);
@@ -15,6 +28,11 @@ export function ChaosOverlay() {
         window.addEventListener("mousemove", handleMouseMove);
         return () => window.removeEventListener("mousemove", handleMouseMove);
     }, []);
+
+    // Don't render the blur effect on touch devices
+    if (isTouchDevice) {
+        return null;
+    }
 
     return (
         <div

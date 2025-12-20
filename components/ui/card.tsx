@@ -15,7 +15,7 @@ const Card = React.forwardRef<HTMLDivElement, CardProps>(
       ref={ref}
       data-slot="card"
       className={cn(
-        'bg-card text-card-foreground flex flex-col gap-6 rounded-xl border py-6 shadow-sm relative group overflow-hidden', // Ensure overflow hidden for clean border
+        'bg-card backdrop-blur-xl text-card-foreground flex flex-col gap-6 rounded-xl border py-6 shadow-sm relative group overflow-hidden', // Opaque background with backdrop blur for aurora
         hoverable && 'cursor-pointer',
         className,
       )}

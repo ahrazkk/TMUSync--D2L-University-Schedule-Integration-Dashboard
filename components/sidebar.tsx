@@ -3,7 +3,7 @@
 import { useState } from "react"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
-import { BookOpen, Calendar, GraduationCap, Target, Timer, FileText, ChevronLeft, ChevronRight } from "lucide-react"
+import { BookOpen, Calendar, GraduationCap, Target, Timer, FileText, ChevronLeft, ChevronRight, Construction } from "lucide-react"
 
 const navigation = [
   { name: "Dashboard", icon: Calendar, current: true },
@@ -15,12 +15,13 @@ const navigation = [
 ]
 
 export function Sidebar() {
-  const [collapsed, setCollapsed] = useState(false)
+  // Start collapsed (closed) by default
+  const [collapsed, setCollapsed] = useState(true)
 
   return (
     <div
       className={cn(
-        "bg-sidebar border-r border-sidebar-border transition-all duration-300",
+        "bg-sidebar border-r border-sidebar-border transition-all duration-300 flex flex-col",
         collapsed ? "w-16" : "w-64",
       )}
     >
@@ -43,7 +44,7 @@ export function Sidebar() {
         </Button>
       </div>
 
-      <nav className="p-4 space-y-2">
+      <nav className="p-4 space-y-2 flex-1">
         {navigation.map((item) => (
           <Button
             key={item.name}
@@ -61,6 +62,21 @@ export function Sidebar() {
           </Button>
         ))}
       </nav>
+
+      {/* Work in Progress Notice */}
+      <div className={cn(
+        "p-4 border-t border-sidebar-border",
+        collapsed ? "flex justify-center" : ""
+      )}>
+        {collapsed ? (
+          <Construction className="w-5 h-5 text-amber-500" />
+        ) : (
+          <div className="flex items-start gap-2 text-xs text-muted-foreground">
+            <Construction className="w-4 h-4 text-amber-500 flex-shrink-0 mt-0.5" />
+            <span>These features are a work in progress. Stay tuned!</span>
+          </div>
+        )}
+      </div>
     </div>
   )
 }
