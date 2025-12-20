@@ -36,18 +36,23 @@ interface StatsCardsProps {
 const styles = `
   .perspective-1000 {
     perspective: 1000px;
+    -webkit-perspective: 1000px;
   }
   .transform-style-3d {
     transform-style: preserve-3d;
+    -webkit-transform-style: preserve-3d;
   }
   .backface-hidden {
     backface-visibility: hidden;
+    -webkit-backface-visibility: hidden;
   }
   .rotate-x-180 {
     transform: rotateX(180deg);
+    -webkit-transform: rotateX(180deg);
   }
   .group:hover .group-hover\\:rotate-x-180 {
     transform: rotateX(180deg);
+    -webkit-transform: rotateX(180deg);
   }
   .no-scrollbar::-webkit-scrollbar {
     display: none;
@@ -55,6 +60,17 @@ const styles = `
   .no-scrollbar {
     -ms-overflow-style: none;
     scrollbar-width: none;
+  }
+  /* Ensure front face is properly hidden when back is shown */
+  .flip-front {
+    z-index: 2;
+    backface-visibility: hidden;
+    -webkit-backface-visibility: hidden;
+  }
+  .flip-back {
+    z-index: 1;
+    backface-visibility: hidden;
+    -webkit-backface-visibility: hidden;
   }
 `;
 
@@ -171,7 +187,7 @@ export function StatsCards({ assignmentStats, courseStats, weeklyHours, currentD
             <div key={stat.title} className="group h-[160px] perspective-1000 cursor-pointer">
               <div className="relative h-full w-full transition-all duration-700 transform-style-3d group-hover:rotate-x-180">
                 {/* Front Face */}
-                <div className="absolute inset-0 backface-hidden">
+                <div className="absolute inset-0 backface-hidden flip-front">
                   <Card className="h-full border shadow-sm bg-card hover:shadow-md transition-shadow dark:border-white/20" hoverable>
                     <CardContent className="p-6 h-full flex flex-col justify-between">
                       <div className="flex items-center justify-between">
@@ -191,7 +207,7 @@ export function StatsCards({ assignmentStats, courseStats, weeklyHours, currentD
                 </div>
 
                 {/* Back Face - WHITE TAROT STYLE */}
-                <div className="absolute inset-0 h-full w-full rounded-xl bg-card text-card-foreground p-5 rotate-x-180 backface-hidden border border-border dark:border-white/20 shadow-xl flex flex-col items-center justify-center relative group overflow-hidden">
+                <div className="absolute inset-0 h-full w-full rounded-xl bg-card text-card-foreground p-5 rotate-x-180 backface-hidden flip-back border border-border dark:border-white/20 shadow-xl flex flex-col items-center justify-center relative group overflow-hidden">
                   <MagneticBorder />
                   <div className="absolute top-3 left-0 w-full flex justify-center opacity-10 pointer-events-none">
                     <stat.icon className="w-24 h-24" />
