@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { ChevronLeft, ChevronRight, Plus, FileText, Calendar, List } from "lucide-react"
@@ -187,6 +187,17 @@ export function WeeklyCalendar({
     window.addEventListener('resize', checkMobile);
     return () => window.removeEventListener('resize', checkMobile);
   }, [hasInitializedView]);
+
+  // Reference for scroll container to auto-scroll to Monday on mobile
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+
+  // Auto-scroll to show Monday-Friday on mobile (skip Sunday)
+  useEffect(() => {
+    if (isMobileScreen && scrollContainerRef.current && !isListView) {
+      // Scroll to show Monday (skip Sunday column which is ~60px wide)
+      scrollContainerRef.current.scrollLeft = 60;
+    }
+  }, [isMobileScreen, isListView]);
 
   const handlePreviousWeek = () => {
     handleDateChange(currentDate.subtract(1, 'week'));
@@ -398,9 +409,9 @@ export function WeeklyCalendar({
           </Button>
         </div>
       </CardHeader>
-      <CardContent className="overflow-x-auto">
+      <CardContent className="overflow-x-auto" ref={scrollContainerRef}>
         <div className="grid grid-cols-[4rem_repeat(7,minmax(60px,1fr))] grid-rows-[auto_auto_repeat(32,20px)] min-w-[600px]">
-          <div className="sticky top-0 z-20 bg-card"></div>
+          <div className="sticky left-0 top-0 z-30 bg-card/95 backdrop-blur-md"></div>
           {days.map((day, index) => (
             <div
               key={day}
@@ -413,7 +424,7 @@ export function WeeklyCalendar({
             </div>
           ))}
 
-          <div className="row-start-2 col-start-1 text-xs font-medium text-muted-foreground p-1 text-right pr-2 z-10 sticky top-12 bg-card border-b border-r">All-Day</div>
+          <div className="row-start-2 col-start-1 text-xs font-medium text-muted-foreground p-1 text-right pr-2 z-30 sticky left-0 top-12 bg-card/95 backdrop-blur-md border-b border-r">All-Day</div>
           {days.map((day, index) => (
             <div
               key={`${day}-allday`}
@@ -427,7 +438,7 @@ export function WeeklyCalendar({
 
           {timeSlotsWithExtraRows.map((time, index) => (
             <div key={time} className="row-start-auto col-start-1 col-end-10 grid grid-cols-subgrid -mt-px" style={{ gridRowStart: index * 2 + 3 }}>
-              <div className="text-xs text-muted-foreground p-1 text-right pr-2 z-10 sticky top-12 bg-card">{time}</div>
+              <div className="text-xs text-muted-foreground p-1 text-right pr-2 z-30 sticky left-0 bg-card/95 backdrop-blur-md border-r">{time}</div>
               {days.map((day, dayIndex) => (
                 <div
                   key={`${day}-cell-${time}`}
