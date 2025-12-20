@@ -76,7 +76,7 @@ const styles = `
   /* Enable touch scrolling inside cards */
   .touch-scroll {
     -webkit-overflow-scrolling: touch;
-    touch-action: pan-y;
+    touch-action: auto;
     overscroll-behavior: contain;
     pointer-events: auto;
     scroll-behavior: smooth;
