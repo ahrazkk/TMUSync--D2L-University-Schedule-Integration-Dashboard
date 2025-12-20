@@ -1071,6 +1071,8 @@ export default function DashboardPage() {
           classes={schedule || []}
           onAssignmentClick={handleAssignmentClick}
           onClassClick={handleCourseClick}
+          mobileSearchOpen={showMobileSearch}
+          setMobileSearchOpen={setShowMobileSearch}
         />
         {/* Add bottom padding on mobile to account for bottom navigation */}
         <div className="flex-1 p-3 md:p-6 space-y-4 md:space-y-6 pb-20 lg:pb-6">

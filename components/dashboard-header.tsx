@@ -4,6 +4,11 @@ import { Bell, Search, Settings, LogOut, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { EnhancedSearch } from "@/components/enhanced-search";
+import {
+  Dialog,
+  DialogContent,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
 
@@ -14,6 +19,8 @@ interface DashboardHeaderProps {
   classes?: any[];
   onAssignmentClick?: (assignment: any) => void;
   onClassClick?: (classEvent: any) => void;
+  mobileSearchOpen?: boolean;
+  setMobileSearchOpen?: (open: boolean) => void;
 }
 
 // Abstract gradient avatar component
@@ -51,11 +58,18 @@ export function DashboardHeader({
   assignments = [],
   classes = [],
   onAssignmentClick,
-  onClassClick
+  onClassClick,
+  mobileSearchOpen: externalSearchOpen,
+  setMobileSearchOpen: externalSetSearchOpen
 }: DashboardHeaderProps) {
   const router = useRouter();
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [displayName, setDisplayName] = useState<string | null>(null);
+  const [internalSearchOpen, setInternalSearchOpen] = useState(false);
+
+  // Use external state if provided, otherwise use internal state
+  const mobileSearchOpen = externalSearchOpen !== undefined ? externalSearchOpen : internalSearchOpen;
+  const setMobileSearchOpen = externalSetSearchOpen || setInternalSearchOpen;
 
   // Load firstName from props or fetch from API
   useEffect(() => {
@@ -169,9 +183,25 @@ export function DashboardHeader({
         </div>
 
         {/* Show search icon only on mobile */}
-        <Button variant="ghost" size="sm" className="md:hidden">
+        <Button variant="ghost" size="sm" className="md:hidden" onClick={() => setMobileSearchOpen(true)}>
           <Search className="w-5 h-5" />
         </Button>
+
+        {/* Mobile Search Dialog */}
+        <Dialog open={mobileSearchOpen} onOpenChange={setMobileSearchOpen}>
+          <DialogContent className="sm:max-w-md">
+            <DialogTitle className="sr-only">Search</DialogTitle>
+            <div className="pt-2">
+              <EnhancedSearch
+                assignments={assignments}
+                classes={classes}
+                onAssignmentClick={(a) => { onAssignmentClick?.(a); setMobileSearchOpen(false); }}
+                onClassClick={(c) => { onClassClick?.(c); setMobileSearchOpen(false); }}
+                onSettingClick={(key) => { router.push(`/settings${key ? `?tab=${key}` : ''}`); setMobileSearchOpen(false); }}
+              />
+            </div>
+          </DialogContent>
+        </Dialog>
 
         <Button variant="ghost" size="sm" className="relative">
           <Bell className="w-4 h-4 md:w-5 md:h-5" />

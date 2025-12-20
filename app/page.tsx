@@ -48,7 +48,7 @@ export default function LandingPage() {
                 <div className="space-y-6 md:space-y-8">
                     <h1 className={`text-6xl md:text-9xl lg:text-[11rem] leading-[0.85] font-serif font-bold tracking-tighter text-foreground transition-all duration-1000 delay-500 ${mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-12'}`}>
                         <span className="block">Chaos.</span>
-                        <span className="block italic font-light text-muted-foreground ml-12 md:ml-24">
+                        <span className="block italic font-light text-muted-foreground ml-4 md:ml-24">
                             Ordered.
                         </span>
                     </h1>

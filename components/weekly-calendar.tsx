@@ -398,8 +398,8 @@ export function WeeklyCalendar({
           </Button>
         </div>
       </CardHeader>
-      <CardContent>
-        <div className="grid grid-cols-[4rem_repeat(7,1fr)] grid-rows-[auto_auto_repeat(32,20px)]">
+      <CardContent className="overflow-x-auto">
+        <div className="grid grid-cols-[4rem_repeat(7,minmax(60px,1fr))] grid-rows-[auto_auto_repeat(32,20px)] min-w-[600px]">
           <div className="sticky top-0 z-20 bg-card"></div>
           {days.map((day, index) => (
             <div

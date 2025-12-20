@@ -22,12 +22,12 @@ export function MobileBottomNav({ onSearchClick }: MobileBottomNavProps) {
 
   const handleTabClick = (tabId: string) => {
     setActiveTab(tabId);
-    
+
     // Handle specific actions
     if (tabId === "search" && onSearchClick) {
       onSearchClick();
     }
-    
+
     // Scroll to relevant sections
     switch (tabId) {
       case "home":
@@ -49,7 +49,7 @@ export function MobileBottomNav({ onSearchClick }: MobileBottomNavProps) {
   };
 
   return (
-    <div className="lg:hidden fixed bottom-0 left-0 right-0 z-50 bg-card border-t border-border">
+    <div className="lg:hidden fixed bottom-0 left-0 right-0 z-50 bg-card/80 backdrop-blur-xl border-t border-border">
       <div className="flex items-center justify-around py-2 px-2">
         {navItems.map((item) => (
           <Button
