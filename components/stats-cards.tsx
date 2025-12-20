@@ -1,4 +1,5 @@
 "use client";
+import { useRef, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card"
 import { Clock, CheckCircle, BookOpen, Calendar } from "lucide-react"
 import dayjs from "dayjs"
@@ -72,9 +73,45 @@ const styles = `
     backface-visibility: hidden;
     -webkit-backface-visibility: hidden;
   }
+  /* Enable touch scrolling inside cards */
+  .touch-scroll {
+    -webkit-overflow-scrolling: touch;
+    touch-action: pan-y;
+    overscroll-behavior: contain;
+    pointer-events: auto;
+    scroll-behavior: smooth;
+  }
 `;
 
 export function StatsCards({ assignmentStats, courseStats, weeklyHours, currentDate }: StatsCardsProps) {
+  // Refs for scroll containers to attach native wheel handlers
+  const scrollRefs = useRef<(HTMLDivElement | null)[]>([]);
+
+  // Attach native wheel event handlers with { passive: false } to allow preventDefault
+  useEffect(() => {
+    const handlers: ((e: WheelEvent) => void)[] = [];
+
+    scrollRefs.current.forEach((ref, index) => {
+      if (ref) {
+        const handler = (e: WheelEvent) => {
+          ref.scrollTop += e.deltaY;
+          e.preventDefault();
+          e.stopPropagation();
+        };
+        handlers[index] = handler;
+        ref.addEventListener('wheel', handler, { passive: false });
+      }
+    });
+
+    return () => {
+      scrollRefs.current.forEach((ref, index) => {
+        if (ref && handlers[index]) {
+          ref.removeEventListener('wheel', handlers[index]);
+        }
+      });
+    };
+  }, []);
+
   // Calculate weekly hours dynamically
   const classHours = weeklyHours?.classHours ?? 0;
   const assignmentHours = weeklyHours?.assignmentHours ?? (assignmentStats?.total ?? 0);
@@ -207,17 +244,21 @@ export function StatsCards({ assignmentStats, courseStats, weeklyHours, currentD
                 </div>
 
                 {/* Back Face - WHITE TAROT STYLE */}
-                <div className="absolute inset-0 h-full w-full rounded-xl bg-card text-card-foreground p-5 rotate-x-180 backface-hidden flip-back border border-border dark:border-white/20 shadow-xl flex flex-col items-center justify-center relative group overflow-hidden">
+                <div className="absolute inset-0 h-full w-full rounded-xl bg-card text-card-foreground rotate-x-180 backface-hidden flip-back border border-border dark:border-white/20 shadow-xl flex flex-col relative group">
                   <MagneticBorder />
                   <div className="absolute top-3 left-0 w-full flex justify-center opacity-10 pointer-events-none">
                     <stat.icon className="w-24 h-24" />
                   </div>
 
-                  <div className="relative z-10 w-full h-full flex flex-col">
-                    <div className="flex items-center justify-center gap-2 mb-3 border-b border-border/30 pb-2">
+                  {/* Full card scrollable area */}
+                  <div
+                    ref={(el) => { scrollRefs.current[index] = el; }}
+                    className="relative z-10 w-full h-full flex flex-col overflow-y-auto no-scrollbar touch-scroll p-5"
+                  >
+                    <div className="flex items-center justify-center gap-2 mb-3 border-b border-border/30 pb-2 flex-shrink-0">
                       <h3 className="font-serif font-bold text-sm tracking-widest uppercase text-foreground">{stat.title}</h3>
                     </div>
-                    <div className="flex-1 overflow-y-auto no-scrollbar w-full">
+                    <div className="flex-1 w-full">
                       {stat.details}
                     </div>
                   </div>
