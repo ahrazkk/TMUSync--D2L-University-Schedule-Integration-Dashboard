@@ -24,6 +24,7 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible"
+import { clearAllAppData, clearDemoMarker } from "@/lib/storage-utils"
 
 // Feature flag for school login
 const ENABLE_SCHOOL_LOGIN = process.env.NEXT_PUBLIC_ENABLE_SCHOOL_LOGIN === 'true';
@@ -55,8 +56,12 @@ export default function LoginPage() {
   useEffect(() => {
     setMounted(true)
 
+    // Clear all app data and session when visiting login page
+    // This prevents demo data from persisting to real user sessions
+    clearAllAppData();
+    clearDemoMarker();
+
     // Auto-logout if visiting login page to break redirect loops (especially from demo mode)
-    // This allows the user to re-login purely by navigating here.
     const clearSession = async () => {
       try {
         await fetch('/api/auth/logout', { method: 'POST' });

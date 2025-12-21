@@ -11,6 +11,7 @@ import {
 } from "@/components/ui/popover";
 import { useRouter } from "next/navigation";
 import { useState, useEffect, useMemo } from "react";
+import { clearAllAppData, clearDemoMarker } from "@/lib/storage-utils";
 
 // localStorage keys for notification tracking
 const LAST_LOGIN_KEY = 'tmusync_last_login';
@@ -144,25 +145,27 @@ export function DashboardHeader({
 
   // Handle logout
   const handleLogout = async () => {
-    // Save session before logout
-    const assignmentIds = assignments.map(a => a.id);
-    const classIds = classes.map(c => c.id);
-    saveCurrentSession(assignmentIds, classIds);
+    // Clear all app data from localStorage to prevent demo data leaking to real users
+    clearAllAppData();
+    clearDemoMarker();
 
     try {
-      await fetch('/api/logout', { method: 'POST' });
+      await fetch('/api/auth/logout', { method: 'POST' });
       window.location.href = '/login';
     } catch (error) {
       console.error('Failed to log out:', error);
     }
   };
 
-  // Handle refresh
+  // Handle refresh - clears old data and fetches fresh ICS data
   const handleRefresh = async () => {
     if (isRefreshing) return;
 
     setIsRefreshing(true);
     try {
+      // Clear old cached data from localStorage to ensure fresh ICS data is used
+      clearAllAppData();
+
       if (onRefresh) {
         await onRefresh();
       } else {

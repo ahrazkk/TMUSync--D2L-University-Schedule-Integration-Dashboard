@@ -22,6 +22,7 @@ import {
   syncAssignmentsAfterLogin,
   clearAssignmentData
 } from "@/lib/assignment-persistence";
+import { markDemoSession } from "@/lib/storage-utils";
 
 export default function DashboardPage() {
   const [currentDate, setCurrentDate] = useState(dayjs());
@@ -382,6 +383,7 @@ export default function DashboardPage() {
               // Check if this is demo mode and show tutorial if not seen before
               if (userData.firstName === 'Demo Student') {
                 setIsDemo(true);
+                markDemoSession(); // Mark session to prevent localStorage saves
                 const hasSeenTutorial = localStorage.getItem('tmusync-tutorial-completed');
                 if (!hasSeenTutorial) {
                   setShowTutorial(true);
