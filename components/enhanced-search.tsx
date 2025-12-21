@@ -22,6 +22,7 @@ interface EnhancedSearchProps {
     onAssignmentClick?: (assignment: any) => void
     onClassClick?: (classEvent: any) => void
     onSettingClick?: (setting: string) => void
+    autoOpen?: boolean
 }
 
 const SETTINGS_OPTIONS = [
@@ -39,13 +40,22 @@ export function EnhancedSearch({
     onAssignmentClick,
     onClassClick,
     onSettingClick,
+    autoOpen = false,
 }: EnhancedSearchProps) {
-    const [isOpen, setIsOpen] = useState(false)
+    const [isOpen, setIsOpen] = useState(autoOpen)
     const [query, setQuery] = useState("")
     const [results, setResults] = useState<SearchResult[]>([])
     const [selectedIndex, setSelectedIndex] = useState(0)
     const inputRef = useRef<HTMLInputElement>(null)
     const containerRef = useRef<HTMLDivElement>(null)
+
+    // Auto-focus when autoOpen is true
+    useEffect(() => {
+        if (autoOpen) {
+            setIsOpen(true)
+            setTimeout(() => inputRef.current?.focus(), 100)
+        }
+    }, [autoOpen])
 
     // Handle keyboard shortcut (Ctrl+K / Cmd+K)
     useEffect(() => {

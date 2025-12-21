@@ -83,6 +83,8 @@ export function DashboardHeader({
   classes = [],
   onAssignmentClick,
   onClassClick,
+  mobileSearchOpen,
+  setMobileSearchOpen,
 }: DashboardHeaderProps) {
   const router = useRouter();
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -247,7 +249,14 @@ export function DashboardHeader({
         {/* Notification Bell with Dropdown */}
         <Popover open={notificationsOpen} onOpenChange={setNotificationsOpen}>
           <PopoverTrigger asChild>
-            <Button variant="ghost" size="sm" className="relative" aria-label="Notifications">
+            <Button
+              variant="ghost"
+              size="sm"
+              type="button"
+              className="relative"
+              aria-label="Notifications"
+              onClick={() => setNotificationsOpen(!notificationsOpen)}
+            >
               <Bell className="w-4 h-4 md:w-5 md:h-5" />
               {totalNewItems > 0 && !sessionSaved && (
                 <span className="absolute -top-1 -right-1 w-4 h-4 md:w-5 md:h-5 bg-destructive rounded-full text-[10px] md:text-xs flex items-center justify-center text-white font-medium">
@@ -375,6 +384,44 @@ export function DashboardHeader({
         {/* Abstract gradient avatar */}
         <AbstractAvatar name={nameToShow} size="md" />
       </div>
+
+      {/* Mobile Search Modal */}
+      {mobileSearchOpen && (
+        <div className="fixed inset-0 z-[100] bg-background/95 backdrop-blur-md md:hidden">
+          <div className="flex flex-col h-full p-4">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-lg font-semibold">Search</h2>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setMobileSearchOpen?.(false)}
+                aria-label="Close search"
+              >
+                ✕
+              </Button>
+            </div>
+            <div className="flex-1">
+              <EnhancedSearch
+                autoOpen={true}
+                assignments={assignments}
+                classes={classes}
+                onAssignmentClick={(assignment) => {
+                  onAssignmentClick?.(assignment);
+                  setMobileSearchOpen?.(false);
+                }}
+                onClassClick={(classEvent) => {
+                  onClassClick?.(classEvent);
+                  setMobileSearchOpen?.(false);
+                }}
+                onSettingClick={(key) => {
+                  router.push(`/settings${key ? `?tab=${key}` : ''}`);
+                  setMobileSearchOpen?.(false);
+                }}
+              />
+            </div>
+          </div>
+        </div>
+      )}
     </header>
   )
 }

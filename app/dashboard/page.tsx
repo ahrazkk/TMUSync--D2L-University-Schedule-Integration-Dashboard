@@ -1037,7 +1037,7 @@ export default function DashboardPage() {
               </div>
             </div>
           </div>
-          <MobileBottomNav onSearchClick={() => { }} />
+          <MobileBottomNav onSearchClick={() => setShowMobileSearch(true)} />
         </main>
       </div>
     );
