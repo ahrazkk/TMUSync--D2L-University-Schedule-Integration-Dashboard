@@ -164,7 +164,14 @@ export function StatsCards({ assignmentStats, courseStats, weeklyHours, currentD
               <p className="text-xl font-bold font-serif">{assignmentStats?.completed || 0}</p>
             </div>
           </div>
-          <div className="w-full bg-secondary h-1.5 rounded-full overflow-hidden mt-3">
+          <div
+            className="w-full bg-secondary h-1.5 rounded-full overflow-hidden mt-3"
+            role="progressbar"
+            aria-label="Assignment completion progress"
+            aria-valuenow={assignmentStats ? Math.round((assignmentStats.completed / Math.max(assignmentStats.total + assignmentStats.completed, 1)) * 100) : 0}
+            aria-valuemin={0}
+            aria-valuemax={100}
+          >
             <div
               className="bg-primary h-full transition-all duration-500"
               style={{ width: `${assignmentStats && (assignmentStats.total + assignmentStats.completed) > 0 ? (assignmentStats.completed / (assignmentStats.total + assignmentStats.completed)) * 100 : 0}%` }}

@@ -23,23 +23,45 @@ const AppearanceContext = createContext<AppearanceContextType>({
 });
 
 export function AppearanceProvider({ children }: { children: React.ReactNode }) {
-    const [preferences, setPreferences] = useState<Preferences>({
-        auroraIntensity: 15,
-        noiseOpacity: 25,
-        enableSpotlight: false
-    });
+    // Detect browser window size to set responsive defaults
+    const getResponsiveDefaults = (): Preferences => {
+        // Check if we're in browser (not SSR)
+        if (typeof window === 'undefined') {
+            return { auroraIntensity: 15, noiseOpacity: 25, enableSpotlight: false };
+        }
+
+        // Use window.innerWidth for actual browser window width
+        // This is more accurate than matchMedia when external monitors are connected
+        // ~23 inch monitors typically show at 1920px+ browser window width
+        const browserWidth = window.innerWidth;
+        const isLargeScreen = browserWidth >= 1920;
+
+        if (isLargeScreen) {
+            // Large monitors (23"+): keep lower intensity to avoid overwhelming brightness
+            return { auroraIntensity: 15, noiseOpacity: 25, enableSpotlight: false };
+        } else {
+            // Smaller screens (laptops, tablets): higher values for visibility
+            return { auroraIntensity: 50, noiseOpacity: 58, enableSpotlight: false };
+        }
+    };
+
+    const [preferences, setPreferences] = useState<Preferences>(() => getResponsiveDefaults());
     const [isLoaded, setIsLoaded] = useState(false);
 
-    // Fetch on mount
+    // Fetch on mount - only apply saved preferences if they exist
     useEffect(() => {
         async function loadPreferences() {
             try {
                 const res = await fetch('/api/user/data');
                 if (res.ok) {
                     const data = await res.json();
-                    if (data.preferences) {
+                    // Only use saved preferences if they actually exist and have values
+                    if (data.preferences &&
+                        typeof data.preferences.auroraIntensity === 'number' &&
+                        typeof data.preferences.noiseOpacity === 'number') {
                         setPreferences(data.preferences);
                     }
+                    // If no preferences saved, keep the responsive defaults
                 }
             } catch (error) {
                 console.error('Failed to load appearance preferences');

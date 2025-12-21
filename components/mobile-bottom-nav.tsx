@@ -61,8 +61,10 @@ export function MobileBottomNav({ onSearchClick }: MobileBottomNavProps) {
               "flex flex-col items-center gap-1 h-auto py-2 px-2 min-w-0 flex-1",
               activeTab === item.id && "text-primary bg-primary/10"
             )}
+            aria-label={item.label}
+            aria-current={activeTab === item.id ? "page" : undefined}
           >
-            <item.icon className="w-4 h-4" />
+            <item.icon className="w-4 h-4" aria-hidden="true" />
             <span className="text-xs font-medium truncate">{item.label}</span>
           </Button>
         ))}

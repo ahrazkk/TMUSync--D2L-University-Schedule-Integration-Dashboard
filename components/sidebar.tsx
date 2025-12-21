@@ -39,6 +39,7 @@ export function Sidebar() {
           size="sm"
           onClick={() => setCollapsed(!collapsed)}
           className="text-sidebar-foreground hover:bg-sidebar-accent"
+          aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
         >
           {collapsed ? <ChevronRight className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4" />}
         </Button>
@@ -56,6 +57,7 @@ export function Sidebar() {
                 : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
               collapsed && "justify-center px-2",
             )}
+            aria-label={collapsed ? item.name : undefined}
           >
             <item.icon className="w-5 h-5 flex-shrink-0" />
             {!collapsed && <span className="text-sm font-medium">{item.name}</span>}

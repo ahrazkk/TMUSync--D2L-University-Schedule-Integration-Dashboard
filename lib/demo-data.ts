@@ -8,12 +8,10 @@ export const DEMO_USER_PROFILE = {
     icsUrls: {
         d2l: 'https://demo.d2l.url/calendar.ics',
         googleCalendar: 'https://demo.google.url/calendar.ics'
-    },
-    preferences: {
-        auroraIntensity: 20,
-        noiseOpacity: 17, // Requested by user in previous turn
-        enableSpotlight: true
     }
+    // Note: preferences removed to allow responsive defaults based on screen size
+    // Small screens (<1500px): Aurora 50%, Grain 58%
+    // Large screens (20"+): Aurora 15%, Grain 25%
 };
 
 // Helper to create dates relative to today
