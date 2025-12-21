@@ -39,6 +39,14 @@ const TUTORIAL_STEPS: TutorialStep[] = [
         position: "left",
         allowInteraction: true,
     },
+    {
+        id: "visual-settings-tip",
+        target: "stats-cards", // Reuse stats-cards as the target since there's no specific settings element on dashboard
+        title: "Customize Your Experience ✨",
+        description: "Head to Settings to adjust the Aurora Lighting and Film Grain effects. We've set optimal defaults for your device, but you can fine-tune them to match your personal preference or reduce visual intensity.",
+        position: "bottom",
+        allowInteraction: false,
+    },
 ];
 
 interface TutorialOverlayProps {

@@ -120,7 +120,7 @@
 }
 
 .bg-noise-home {
-  opacity: 0.02 !important;
+  opacity: 0.03 !important;
   /* Higher frequency for TV static effect */
   background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 400 400' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='1.8' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
   animation: staticFlicker 0.15s steps(10) infinite;

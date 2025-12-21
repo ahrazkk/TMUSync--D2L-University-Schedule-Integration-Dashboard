@@ -27,22 +27,30 @@ export function AppearanceProvider({ children }: { children: React.ReactNode }) 
     const getResponsiveDefaults = (): Preferences => {
         // Check if we're in browser (not SSR)
         if (typeof window === 'undefined') {
-            return { auroraIntensity: 15, noiseOpacity: 25, enableSpotlight: false };
+            return { auroraIntensity: 52, noiseOpacity: 81, enableSpotlight: false };
         }
 
         // Use window.innerWidth for actual browser window width
-        // This is more accurate than matchMedia when external monitors are connected
-        // ~23 inch monitors typically show at 1920px+ browser window width
         const browserWidth = window.innerWidth;
-        const isLargeScreen = browserWidth >= 1920;
 
-        if (isLargeScreen) {
-            // Large monitors (23"+): keep lower intensity to avoid overwhelming brightness
-            return { auroraIntensity: 15, noiseOpacity: 25, enableSpotlight: false };
-        } else {
-            // Smaller screens (laptops, tablets): higher values for visibility
-            return { auroraIntensity: 50, noiseOpacity: 58, enableSpotlight: false };
+        // Also check if it's a touch device (mobile/tablet)
+        const isTouchDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+
+        // Mobile/Tablets: typically < 1024px width or touch devices on small screens
+        // User requested: 78% aurora, 100% grain
+        if (browserWidth < 1024 || (isTouchDevice && browserWidth < 1280)) {
+            return { auroraIntensity: 78, noiseOpacity: 100, enableSpotlight: false };
         }
+
+        // Large monitors (23"+): typically 1920px+ browser window width
+        // Keep lower intensity to avoid overwhelming brightness
+        if (browserWidth >= 1920) {
+            return { auroraIntensity: 15, noiseOpacity: 25, enableSpotlight: false };
+        }
+
+        // Laptops under 20 inch: 1024px to 1919px
+        // User requested: 52% aurora, 81% grain
+        return { auroraIntensity: 52, noiseOpacity: 81, enableSpotlight: false };
     };
 
     const [preferences, setPreferences] = useState<Preferences>(() => getResponsiveDefaults());
